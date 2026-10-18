@@ -93,6 +93,20 @@ class BlenderClient:
             }
             raise DeliveryError(f"blender_http_{response.status_code}", permanent=permanent)
 
+    async def check_access(self) -> None:
+        """Verify token acquisition and a protected read without submitting traffic."""
+        token = await self.token()
+        url = self.settings.blender.base_url.rstrip("/") + "/surveillance_monitoring_ops/health/"
+        try:
+            response = await self.client.get(url, headers={"Authorization": f"Bearer {token}"})
+            if response.status_code == 401 and self.settings.blender.oauth:
+                token = await self.token(force=True)
+                response = await self.client.get(url, headers={"Authorization": f"Bearer {token}"})
+        except httpx.HTTPError as exc:
+            raise DeliveryError("blender_unreachable") from exc
+        if response.status_code != 200:
+            raise DeliveryError(f"blender_read_http_{response.status_code}")
+
 
 class Forwarder:
     def __init__(self, settings: Settings, store: Store, blender: BlenderClient):

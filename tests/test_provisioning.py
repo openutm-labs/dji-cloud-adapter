@@ -1,5 +1,6 @@
 import json
 import stat
+import sys
 from pathlib import Path
 
 import pytest
@@ -59,3 +60,24 @@ def test_aircraft_cannot_be_assigned_to_two_controllers(settings):
     raw["devices"].append(other)
     with pytest.raises(ValidationError, match="unique"):
         Settings.model_validate(raw)
+
+
+def test_access_check_cli_does_not_print_credentials_or_responses(settings, tmp_path, monkeypatch, capsys):
+    from dji_cloud_adaptor import cli
+    from dji_cloud_adaptor.blender import DeliveryError
+
+    config = tmp_path / "config.json"
+    cli.private_write(config, json.dumps(settings.model_dump(), default=cli.secret_json))
+
+    async def denied(settings):
+        raise DeliveryError("blender_read_http_403")
+
+    monkeypatch.setattr(cli, "check_blender", denied)
+    monkeypatch.setattr(sys, "argv", ["dji-cloud-adaptor", "check-blender", "--config", str(config)])
+    with pytest.raises(SystemExit) as exc:
+        cli.main()
+    assert exc.value.code == 1
+    output = capsys.readouterr()
+    assert "blender_read_http_403" in output.err
+    for secret in ("test-blender-token", "test-app-key", "test-license", "test-admin-token-"):
+        assert secret not in output.err + output.out

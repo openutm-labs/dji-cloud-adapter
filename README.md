@@ -2,7 +2,7 @@
 
 Receive aircraft telemetry through **DJI Pilot 2 → your MQTT broker → Flight Blender**. Pilots keep using Pilot 2; they do not install an OpenUTM APK on the controller for this route.
 
-**Status: initial implementation, locally tested; not deployed or validated on a real Pilot 2 controller.** Hosting and repository publication are pending. DJI application details belong in private runtime configuration; Blender credentials and an actual controller/aircraft pairing are still needed for Panama acceptance.
+**Status: initial implementation, locally tested; not hosted or validated on a real Pilot 2 controller.** Hosting and repository publication are pending. Supplied DJI application fields and Panama OAuth credentials are configured only in the private local runtime. Panama token acquisition/renewal and protected read access have been verified over HTTPS. Real controller/aircraft pairing, traffic-write acceptance and downstream verification remain necessary.
 
 ```mermaid
 flowchart LR

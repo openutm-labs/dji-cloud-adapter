@@ -76,6 +76,7 @@ Use **one app process** per database. Do not increase Uvicorn workers or horizon
 - The HTTPS page loads with a valid certificate on the actual controller.
 - `/healthz` returns 200 when the application/database can respond.
 - `/readyz` returns 200 only when MQTT subscription, forwarding loop and required credential fields are configured. This is a readiness check, **not a live licence/token/aircraft verification**.
+- Run `dji-cloud-adaptor check-blender --config /config/config.json` inside the app container to verify token acquisition and the protected Blender health GET without submitting traffic. See the [Panama authentication settings and access check](blender.md#panama-server-configuration). Keep TLS certificate verification enabled.
 - Anonymous requests cannot read `/api/pilot/bootstrap`, configuration, status or `/api/admin/status`.
 - The real Pilot 2 licence check and per-controller connection succeed.
 - A recent aircraft position reaches Blender and is verified downstream.
@@ -98,6 +99,14 @@ docker compose --env-file runtime/compose.env -f compose.yml -f compose.developm
 This exposes only loopback ports 18080 (web), 18884 (MQTT TCP) and 19001 (MQTT WebSocket). The development overlay mounts web assets for UI editing. A regular browser displays instructions and disables native connection; it cannot simulate a DJI aircraft.
 
 Do not point a development simulator at Panama's operational Blender. The automated tests use synthetic aircraft and a local HTTP receiver. Test-only plaintext URLs are restricted to loopback/known Docker development hosts.
+
+### Local adaptor with Panama authentication
+
+The local runtime may hold Panama's real OAuth configuration while public hosting is pending. This does not make the loopback controller address a production deployment. Keep ports bound to loopback, retain private file permissions, and do not publish simulated aircraft positions to Panama. Automated integration tests must continue to use their own synthetic configuration and local receiver.
+
+The current local runtime has the supplied DJI fields and Panama OAuth client configured, and authenticated reads verified. The controller/aircraft entry is still fictional. Before connecting real equipment, the coordinator must supply its exact pairing privately and the service owner must prepare a controller-reachable HTTPS/WSS address with a trusted certificate. Do not hand out `localhost` to pilots or reuse a fictional device code as an operational setup.
+
+Before production hand-off, confirm the hostname, exact real equipment, persistent-storage/backup owner, monitoring/support owner, traffic classification and the separate pilot/declaration/reporting procedure. The production Compose stack already provides persistent storage, restart policies, a TLS proxy and internal broker ports; these still need acceptance on the chosen host and controller.
 
 ## Operations, access changes and recovery
 

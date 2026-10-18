@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import hashlib
 import json
 import os
@@ -7,8 +8,10 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import uuid4
 
+import httpx
 from pydantic import SecretStr, ValidationError
 
+from .blender import BlenderClient, DeliveryError
 from .config import Settings, load_settings
 
 
@@ -135,6 +138,10 @@ def main():
     render.add_argument("--output", type=Path, default=Path("runtime/broker"))
     validate = sub.add_parser("check", help="Check config without printing secrets or contacting devices")
     validate.add_argument("--config", type=Path, default=Path("runtime/config.json"))
+    access = sub.add_parser(
+        "check-blender", help="Verify Blender authentication and a protected GET; sends no telemetry"
+    )
+    access.add_argument("--config", type=Path, default=Path("runtime/config.json"))
     args = parser.parse_args()
     try:
         if args.command == "init":
@@ -143,14 +150,27 @@ def main():
         elif args.command == "render-broker":
             render_broker(load_settings(args.config), args.output)
             print("Broker files regenerated. Restart the app and broker to apply access changes.")
+        elif args.command == "check-blender":
+            asyncio.run(check_blender(load_settings(args.config)))
+            print(
+                "Blender authentication and protected read succeeded. "
+                "No telemetry was submitted; write access and downstream processing remain unverified."
+            )
         else:
             settings = load_settings(args.config)
             print(
                 f"Configuration valid. DJI configured: {settings.dji.configured}; "
                 f"Blender configured: {settings.blender.configured}."
             )
+    except DeliveryError as exc:
+        parser.exit(1, f"Blender access check failed: {exc.reason}. Credentials and responses suppressed.\n")
     except (ValueError, ValidationError, KeyError, OSError):
         # Pydantic errors can include the original input. Never print secret configuration.
         parser.exit(
             1, "Configuration could not be prepared. Check the input fields, URLs and file permissions.\n"
         )
+
+
+async def check_blender(settings: Settings):
+    async with httpx.AsyncClient(timeout=20, follow_redirects=False) as client:
+        await BlenderClient(settings, client).check_access()

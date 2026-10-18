@@ -9,7 +9,7 @@ The automated tests use fictional identifiers, synthetic telemetry and local rec
 | Check | Evidence / scope |
 |---|---|
 | Protocol and authentication | Tests cover invalid coordinates/height/time, stale and retained messages, unknown aircraft, wrong gateway, partial OSD, duplicate samples, private bootstrap, wrong-controller revocation, session expiry, logout and rate limiting. |
-| Blender contract | HTTP test transport checks the exact observation envelope, endpoint, millimetre conversion, timestamp preservation, retry behaviour, OAuth renewal, authentication failure and permanent rejection. |
+| Blender contract | HTTP test transport checks the exact observation envelope, endpoint, millimetre conversion, timestamp preservation, retry behaviour, OAuth renewal, authentication failure and permanent rejection. The administrator access check submits only a protected GET and suppresses credentials/server bodies. |
 | Real MQTT broker | Mosquitto with generated passwords/ACLs; topology receipt, duplicate delivery, TCP/WebSocket connection, bad-password rejection and prohibited publishing. |
 | Built-container recovery | Application + real broker + actual local HTTP contract receiver. Receiver initially returns 503; adapter restarts with a pending sample; delivery then succeeds with the original source timestamp/event identifier. Test accounts for Docker's dynamically allocated host port changing after restart. |
 | Pilot page | Node tests exercise the documented native return envelope, licence/controller failures, component-load errors, unavailable browser storage and stale status handling. Browser preview was inspected in English and Spanish. |
@@ -33,13 +33,18 @@ These are real screenshots of the local page in an ordinary browser, **not proof
 
 ![Vista previa local en español](images/connection-es.png)
 
+## Panama authentication check, 19 October 2026
+
+The locally configured client obtained a Panama OAuth token over verified HTTPS. Cache reuse and forced renewal succeeded. The protected surveillance-health GET returned 401 without a token and 200 with the token. A credential-free check report is stored privately in the ignored runtime directory. No telemetry, declaration or account was created by this check. This evidence verifies token issuance and read access, not actual write acceptance or downstream persistence.
+
 ## Required before Panama deployment
 
 - [ ] Create the repository and grant `not-vibhu` write access; push the reviewed implementation and run remote CI.
 - [ ] Choose hosting, domain, persistent storage, monitoring and support ownership.
 - [ ] Verify the DJI application's Cloud API product selection and licence on the actual controller. Configured licence fields alone are not verification.
 - [ ] Confirm exact controller/aircraft serials, models, firmware and payload; replace all fictional configuration entries.
-- [ ] Obtain Blender credentials, token flow, audience/scopes and traffic classification from its service team.
+- [x] Configure the supplied Panama OAuth client locally; verify token acquisition/renewal and a protected read with normal TLS verification.
+- [ ] Confirm production credential ownership/rotation and traffic classification; verify actual aircraft writes and downstream processing during supervised acceptance.
 - [ ] Complete the intended pilot/account/declaration workflow separately; do not treat device telemetry setup as membership or flight approval.
 
 ## Required on each real equipment combination
@@ -58,4 +63,4 @@ Perform this under the lab's approved ground/flight procedures. Ground connectio
 
 ## Not yet verified
 
-Real Mavic 3 Enterprise/Matrice 400 telemetry, the supplied licence on hardware, controller TLS trust, Panama OAuth/API writes, downstream Spotlight visibility, full flight operations or Cloud API 2 runtime compatibility. No production DNS, server settings or aircraft settings were changed.
+Real Mavic 3 Enterprise/Matrice 400 telemetry, the supplied licence on hardware, controller TLS trust, Panama traffic writes/downstream Spotlight visibility, full flight operations or Cloud API 2 runtime compatibility. No production DNS, hosted server settings or aircraft settings were changed. Panama token requests and a protected read were performed from the local adaptor.
