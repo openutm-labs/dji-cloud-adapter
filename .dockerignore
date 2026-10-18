@@ -1,0 +1,13 @@
+.git
+.venv
+runtime
+.env*
+*.sqlite3*
+__pycache__
+.pytest_cache
+.ruff_cache
+dist
+
+*.local.json
+.integration-runtime
+tests

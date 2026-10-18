@@ -1,0 +1,39 @@
+name: Check adapter
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22'
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run ruff check src tests
+      - run: uv run ruff format --check src tests
+      - run: uv run pytest -q
+      - run: node --test tests/portal.test.cjs
+      - name: Check runtime dependency export
+        run: |
+          uv export --no-dev --no-emit-project --format requirements-txt --output-file requirements.lock > /dev/null
+          git diff --exit-code -- requirements.lock
+      - run: docker pull eclipse-mosquitto:2.1.2-alpine
+      - run: docker build -t dji-cloud-adaptor-app .
+      - name: Real broker and container recovery tests
+        env:
+          RUN_MQTT_INTEGRATION: '1'
+          RUN_STACK_INTEGRATION: '1'
+        run: uv run pytest tests/test_mqtt_integration.py tests/test_stack_integration.py -q

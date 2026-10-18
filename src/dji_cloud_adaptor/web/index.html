@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>OpenUTM · Connect your controller</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="/static/portal.js" defer></script>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <a class="brand" href="/" aria-label="OpenUTM home"
+          ><span class="mark" aria-hidden="true">↗</span> OpenUTM</a
+        >
+        <label class="language"
+          ><span class="sr-only">Language / Idioma</span
+          ><select id="language">
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select></label
+        >
+      </header>
+      <main>
+        <div class="eyebrow" data-text="eyebrow">DJI PILOT 2 CONNECTION</div>
+        <h1 data-text="title">Your flight. Connected.</h1>
+        <p class="intro" data-text="intro">
+          Share aircraft telemetry with your Flying Lab while you keep flying
+          with DJI Pilot 2.
+        </p>
+        <div id="browser-notice" class="notice" hidden>
+          <strong data-text="outsideTitle"
+            >Open this page in DJI Pilot 2</strong
+          >
+          <p data-text="outsideBody">
+            On your compatible controller, open Cloud Service → Open Platforms
+            and enter this website’s address. This page cannot connect an
+            aircraft from a regular browser.
+          </p>
+        </div>
+        <section id="connect-card" class="card">
+          <div class="step-label" data-text="step">CONTROLLER SETUP</div>
+          <h2 data-text="connectTitle">Connect to your lab</h2>
+          <p data-text="connectBody">
+            Use the private connection code your coordinator gave you for this
+            controller.
+          </p>
+          <form id="connect-form">
+            <label for="code" data-text="codeLabel">Connection code</label>
+            <input
+              id="code"
+              type="password"
+              autocomplete="off"
+              autocapitalize="none"
+              spellcheck="false"
+              maxlength="150"
+              required
+              aria-describedby="code-help"
+            />
+            <p id="code-help" class="hint" data-text="codeHelp">
+              This is a controller setup code, not your Passport password. Keep
+              it private.
+            </p>
+            <button id="connect" type="submit" data-text="connect">
+              Connect telemetry <span aria-hidden="true">→</span>
+            </button>
+          </form>
+          <p id="message" role="status" aria-live="polite"></p>
+        </section>
+        <section id="connection-card" class="card" hidden>
+          <div class="step-label" data-text="connectionLabel">
+            CONNECTION STATUS
+          </div>
+          <h2 id="device-name"></h2>
+          <p id="workspace-name" class="muted"></p>
+          <div class="status-row">
+            <span data-text="controller">Controller connection</span
+            ><span id="controller-state" class="badge" role="status"></span>
+          </div>
+          <div class="status-row">
+            <span data-text="aircraft">Aircraft telemetry</span
+            ><span id="aircraft-state" class="badge" role="status"></span>
+          </div>
+          <div class="status-row">
+            <span data-text="blender">Flight Blender</span
+            ><span id="blender-state" class="badge" role="status"></span>
+          </div>
+          <dl class="details">
+            <div>
+              <dt data-text="received">Last aircraft sample</dt>
+              <dd id="last-received">—</dd>
+            </div>
+            <div>
+              <dt data-text="accepted">Last API acceptance</dt>
+              <dd id="last-accepted">—</dd>
+            </div>
+            <div>
+              <dt data-text="pending">Waiting to send</dt>
+              <dd id="pending-count">0</dd>
+            </div>
+          </dl>
+          <p id="status-help" class="hint" role="status"></p>
+          <button
+            id="disconnect"
+            type="button"
+            class="secondary"
+            data-text="disconnect"
+          >
+            Disconnect this controller
+          </button>
+        </section>
+        <aside class="footnote">
+          <span class="dot" aria-hidden="true"></span>
+          <p data-text="note">
+            Telemetry connection only. Your pilot, flight permissions and
+            operating checks remain part of your lab’s normal procedure. No
+            flight-control access is requested.
+          </p>
+        </aside>
+      </main>
+      <footer>
+        <span>OpenUTM · Flying Labs</span
+        ><span data-text="help"
+          >Need help? Contact the coordinator who gave you this link.</span
+        >
+      </footer>
+    </div>
+  </body>
+</html>

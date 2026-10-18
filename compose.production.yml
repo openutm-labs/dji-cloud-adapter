@@ -1,0 +1,17 @@
+services:
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      ADAPTOR_DOMAIN: "${ADAPTOR_DOMAIN:?Set ADAPTOR_DOMAIN in runtime/compose.env}"
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [app, mqtt]
+    logging:
+      options: {max-size: 10m, max-file: "3"}
+volumes:
+  caddy-data:
+  caddy-config:

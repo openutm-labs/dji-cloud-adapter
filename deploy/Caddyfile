@@ -1,0 +1,12 @@
+{$ADAPTOR_DOMAIN} {
+    @mqtt path /mqtt /mqtt/*
+    handle @mqtt {
+        reverse_proxy mqtt:9001
+    }
+    handle {
+        request_body {
+            max_size 16KB
+        }
+        reverse_proxy app:8080
+    }
+}

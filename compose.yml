@@ -1,0 +1,37 @@
+services:
+  app:
+    build: .
+    user: "${ADAPTOR_UID:-10001}:${ADAPTOR_GID:-10001}"
+    restart: unless-stopped
+    environment:
+      ADAPTOR_CONFIG: /config/config.json
+      ADAPTOR_DATABASE: /data/queue.sqlite3
+    volumes:
+      - ./runtime/config.json:/config/config.json:ro
+      - ./runtime/data:/data
+    depends_on:
+      mqtt:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging:
+      options: {max-size: 10m, max-file: "3"}
+  mqtt:
+    image: eclipse-mosquitto:2.1.2-alpine
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/bootstrap/entrypoint.sh"]
+    volumes:
+      - ./deploy/mosquitto-entrypoint.sh:/bootstrap/entrypoint.sh:ro
+      - ./runtime/broker:/bootstrap/config:ro
+      - mqtt-data:/mosquitto/data
+    logging:
+      options: {max-size: 10m, max-file: "3"}
+volumes:
+  mqtt-data:

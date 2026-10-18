@@ -1,0 +1,10 @@
+# Local access only; never use this override on a public server.
+services:
+  app:
+    environment:
+      ADAPTOR_WEB: /app/web
+    volumes:
+      - ./src/dji_cloud_adaptor/web:/app/web:ro
+    ports: ["127.0.0.1:18080:8080"]
+  mqtt:
+    ports: ["127.0.0.1:18884:1883", "127.0.0.1:19001:9001"]
