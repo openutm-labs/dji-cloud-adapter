@@ -11,7 +11,7 @@ Necesita:
 - Aeronave y controlador aprobados por el laboratorio, con **DJI Pilot 2**. Los primeros objetivos de Panamá son Mavic 3 Enterprise y Matrice 400 con sus controladores correctos.
 - Internet en el controlador.
 - La **dirección del sitio de conexión** proporcionada por el coordinador.
-- El **código privado asignado a este controlador**.
+- Un **código privado de invitación del laboratorio** para registrarse, o el **código de conexión asignado a este controlador** si ya está registrado.
 
 Esta ruta no requiere APK, cuenta de desarrollador ni comandos. El código no es su contraseña Passport y no identifica al piloto. Complete por separado el acceso del piloto, la planificación y los permisos del laboratorio.
 
@@ -26,7 +26,27 @@ Esta ruta no requiere APK, cuenta de desarrollador ni comandos. El código no es
 
 Si aparece **Abra esta página en DJI Pilot 2**, está usando un navegador normal. Vuelva a Pilot 2 y ábrala desde **Open Platforms**.
 
-## 2. Introduzca el código
+## Primera vez: registre su propio controlador
+
+Si recibió un **código de invitación del laboratorio** en lugar de un código de conexión existente:
+
+1. Mantenga la aeronave compatible en tierra, encendida y enlazada al controlador. No necesita enviar números de serie previamente.
+2. Abra la página dentro de Pilot 2 como se indica arriba y seleccione **¿Primera vez? Registre este controlador**.
+3. Introduzca la invitación privada en **Código de invitación del laboratorio**. No es la contraseña Passport ni el código de conexión de un dispositivo registrado.
+4. Seleccione **Mavic 3 Enterprise** o **Matrice 400**, según la aeronave real. Puede añadir un nombre al controlador.
+5. Toque **Registrar y conectar →**. La página verifica la licencia DJI y lee ambos identificadores desde Pilot 2. No requiere escribir números de serie.
+6. Conserve el nuevo **código de conexión** de forma privada. Use **Mostrar código** solo cuando pueda guardarlo; no lo incluya en capturas. Para reconectar después use este código, no la invitación.
+7. Compruebe los tres estados siguientes. Registrarse no autoriza vuelos ni crea declaraciones.
+
+Cada invitación vence y registra un controlador con una aeronave. Si utiliza ambas combinaciones, necesita una invitación para cada una. Si falta el botón, el laboratorio puede no haber habilitado el autorregistro; consulte la ruta correcta con el coordinador.
+
+Si Pilot 2 no puede leer el identificador, compruebe encendido y enlace en tierra. Si aparece **El registro está guardado**, mantenga la página abierta y toque **Registrar y conectar** otra vez; no cambie de equipo ni pruebe otras identidades. Un equipo ya registrado necesita su código guardado o recuperación por el coordinador.
+
+![Registro inicial](images/self-onboarding-es.png)
+
+*Vista previa local con campos vacíos; el registro está desactivado fuera de Pilot 2. No muestra invitaciones ni identificadores reales.*
+
+## 2. Si ya está registrado: introduzca el código
 
 1. Escriba el código privado en **Código de conexión**.
 2. Toque **Conectar telemetría →**.

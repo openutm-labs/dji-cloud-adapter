@@ -115,6 +115,19 @@ input {
   padding: 14px;
   background: #fafcfc;
 }
+#aircraft-model {
+  display: block;
+  width: 100%;
+  font: inherit;
+  padding: 14px;
+  border: 1px solid #b6c9d2;
+  border-radius: 8px;
+  background: #fafcfc;
+  color: #172b38;
+}
+#save-code-card { margin-bottom: 18px; }
+#new-code { font-family: monospace; overflow-wrap: anywhere; }
+#enrollment-message { color: #9b3434; }
 input:focus,
 button:focus-visible,
 select:focus-visible {

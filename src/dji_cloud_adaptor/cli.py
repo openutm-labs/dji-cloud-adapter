@@ -12,7 +12,10 @@ import httpx
 from pydantic import SecretStr, ValidationError
 
 from .blender import BlenderClient, DeliveryError
+from .broker import BrokerProvisioner, BrokerUnavailable, initial_security
 from .config import Settings, load_settings
+from .enrollment import EnrollmentError, EnrollmentStore
+from .store import Store
 
 
 def private_write(path: Path, text: str):
@@ -31,6 +34,30 @@ def secret_json(value):
 
 
 def render_broker(settings: Settings, directory: Path):
+    if settings.mqtt.provisioner_password.get_secret_value():
+        private_write(directory / "dynamic-security.json", json.dumps(initial_security(settings)) + "\n")
+        private_write(
+            directory / "mosquitto.conf",
+            """persistence true
+persistence_location /mosquitto/data/
+autosave_interval 30
+allow_anonymous false
+plugin /usr/lib/mosquitto_dynamic_security.so
+plugin_opt_config_file /mosquitto/data/dynamic-security.json
+max_packet_size 262144
+max_queued_messages 100000
+queue_qos0_messages false
+connection_messages false
+log_dest stdout
+log_type error
+log_type warning
+listener 1883
+protocol mqtt
+listener 9001
+protocol websockets
+""",
+        )
+        return
     passwords = [f"{settings.mqtt.worker_username}:{settings.mqtt.worker_password.get_secret_value()}"]
     # Every role has exact topic grants. No flight-control or service-command grants.
     acl = [f"user {settings.mqtt.worker_username}"]
@@ -109,6 +136,8 @@ def initialize(input_path: Path, output: Path):
         "worker_password": secrets.token_urlsafe(32),
         "client_id": "adaptor-" + uuid4().hex[:16],
     }
+    if raw.get("enrollment", {}).get("enabled"):
+        raw["mqtt"].setdefault("provisioner_password", secrets.token_urlsafe(32))
     settings = Settings.model_validate(raw)
     output.mkdir(mode=0o700, parents=True)
     (output / "data").mkdir(mode=0o700)
@@ -142,6 +171,29 @@ def main():
         "check-blender", help="Verify Blender authentication and a protected GET; sends no telemetry"
     )
     access.add_argument("--config", type=Path, default=Path("runtime/config.json"))
+    invitation = sub.add_parser(
+        "issue-invitation", help="Write a one-controller invitation to a private file"
+    )
+    invitation.add_argument("--config", type=Path, default=Path("runtime/config.json"))
+    invitation.add_argument("--database", type=Path, default=Path("runtime/data/queue.sqlite3"))
+    invitation.add_argument("--output", type=Path, required=True)
+    invitation.add_argument("--label", default="Operator invitation")
+    invitation.add_argument("--hours", type=int, choices=range(1, 169), default=72, metavar="1..168")
+    revoke = sub.add_parser("revoke-device", help="Revoke a self-enrolled device and its broker access")
+    revoke.add_argument("--config", type=Path, default=Path("runtime/config.json"))
+    revoke.add_argument("--database", type=Path, default=Path("runtime/data/queue.sqlite3"))
+    revoke.add_argument("--device", required=True)
+    recover = sub.add_parser(
+        "export-device-code", help="Recover a self-enrolled device code to a private file"
+    )
+    recover.add_argument("--database", type=Path, default=Path("runtime/data/queue.sqlite3"))
+    recover.add_argument("--device", required=True)
+    recover.add_argument("--output", type=Path, required=True)
+    revoke_invite = sub.add_parser(
+        "revoke-invitation", help="Cancel an invitation from its private hand-off file"
+    )
+    revoke_invite.add_argument("--database", type=Path, default=Path("runtime/data/queue.sqlite3"))
+    revoke_invite.add_argument("--invitation-file", type=Path, required=True)
     args = parser.parse_args()
     try:
         if args.command == "init":
@@ -156,6 +208,41 @@ def main():
                 "Blender authentication and protected read succeeded. "
                 "No telemetry was submitted; write access and downstream processing remain unverified."
             )
+        elif args.command == "issue-invitation":
+            settings = load_settings(args.config)
+            if not settings.enrollment.enabled or args.output.exists():
+                raise ValueError("Enrollment disabled or output already exists")
+            code, expires = EnrollmentStore(Store(args.database)).invite(args.label[:100], args.hours)
+            private_write(
+                args.output,
+                json.dumps(
+                    {"url": settings.public_url, "invitation_code": code, "expires_at": expires}, indent=2
+                )
+                + "\n",
+            )
+            print("Invitation saved privately. One controller per invitation; no serials needed in advance.")
+        elif args.command == "revoke-device":
+            settings = load_settings(args.config)
+            registry = EnrollmentStore(Store(args.database))
+            devices = registry.devices() + registry.devices("pending") + registry.devices("revoked")
+            device = next((d for d in devices if d.id == args.device), None)
+            if not device or not settings.mqtt.provisioner_password.get_secret_value():
+                raise ValueError("Device or broker provisioning unavailable")
+            registry.revoke(device.id)
+            BrokerProvisioner(settings).revoke(device)
+            print("Device revoked. The running service will remove its registration on its next refresh.")
+        elif args.command == "export-device-code":
+            if args.output.exists():
+                raise ValueError("Output already exists")
+            code = EnrollmentStore(Store(args.database)).code(args.device)
+            private_write(args.output, json.dumps({"device_id": args.device, "connection_code": code}) + "\n")
+            print(
+                "Connection code recovered to the private output file; share only with the assigned operator."
+            )
+        elif args.command == "revoke-invitation":
+            code = json.loads(args.invitation_file.read_text())["invitation_code"]
+            EnrollmentStore(Store(args.database)).revoke_invitation(code)
+            print("Invitation cancelled. Revoke an already registered device separately if required.")
         else:
             settings = load_settings(args.config)
             print(
@@ -164,6 +251,10 @@ def main():
             )
     except DeliveryError as exc:
         parser.exit(1, f"Blender access check failed: {exc.reason}. Credentials and responses suppressed.\n")
+    except (BrokerUnavailable, EnrollmentError):
+        parser.exit(
+            1, "Enrollment operation could not finish. Check private configuration and broker access.\n"
+        )
     except (ValueError, ValidationError, KeyError, OSError):
         # Pydantic errors can include the original input. Never print secret configuration.
         parser.exit(

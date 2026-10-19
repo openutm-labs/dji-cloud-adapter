@@ -11,7 +11,7 @@ You need:
 - The lab's approved aircraft and controller running **DJI Pilot 2**. Panama's first targets are Mavic 3 Enterprise and Matrice 400 with their correct controllers.
 - Working internet on the controller.
 - The **controller connection website address** from your coordinator.
-- A private **connection code assigned to this controller**.
+- A private **lab invitation code** for first-time registration, or an existing **connection code assigned to this controller**.
 
 You do not need an APK, developer account or command-line tool for this route. Your connection code is not your Passport password and does not identify the human pilot. Continue the lab's normal pilot sign-in, planning and permission steps separately.
 
@@ -26,7 +26,27 @@ You do not need an APK, developer account or command-line tool for this route. Y
 
 If the page says **Open this page in DJI Pilot 2**, it is running in a regular browser. Return to Pilot 2 and open it from **Open Platforms**.
 
-## 2. Enter your controller's code
+## First time: register your own controller
+
+If your coordinator supplied a **lab invitation code** instead of an existing connection code:
+
+1. Keep the supported aircraft on the ground, powered on and linked to its controller. You do not need to send serial numbers in advance.
+2. Open the connection page inside Pilot 2 as described above, then select **First time here? Register this controller**.
+3. Enter the private invitation in **Lab invitation code**. It is different from your Passport password and from a saved device connection code.
+4. Select **Mavic 3 Enterprise** or **Matrice 400**, matching your actual aircraft. Optionally enter a controller nickname.
+5. Tap **Register and connect →**. The page verifies the DJI licence and reads both equipment IDs from Pilot 2. No manual serial entry is required.
+6. Keep the new private **connection code**. Use **Show code** only when you are ready to save it privately; do not include it in screenshots. Use this code, rather than the invitation, when reconnecting later.
+7. Continue with the three status checks below. Registration does not authorise flight or create a declaration.
+
+Each invitation is time-limited and registers one controller/aircraft pair. If an operator has both supported combinations, use a separate invitation for each. If the button is missing, the lab may not have enabled self-registration; ask the coordinator for the correct route.
+
+If Pilot 2 cannot read the aircraft ID, check that the approved aircraft is powered and linked on the ground. If **Registration is saved** appears, keep this page open and tap **Register and connect** again; do not change equipment or try different identities. An already registered device needs its saved connection code or coordinator-assisted recovery.
+
+![First-time registration](images/self-onboarding-en.png)
+
+*Local browser preview with empty fields; registration is disabled outside Pilot 2. No real invitation or equipment IDs are shown.*
+
+## 2. Already registered: enter your controller's code
 
 1. Enter the private code in **Connection code**.
 2. Tap **Connect telemetry →**.

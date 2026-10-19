@@ -42,7 +42,7 @@ The locally configured client obtained a Panama OAuth token over verified HTTPS.
 - [ ] Create the repository and grant `not-vibhu` write access; push the reviewed implementation and run remote CI.
 - [ ] Choose hosting, domain, persistent storage, monitoring and support ownership.
 - [ ] Verify the DJI application's Cloud API product selection and licence on the actual controller. Configured licence fields alone are not verification.
-- [ ] Confirm exact controller/aircraft serials, models, firmware and payload; replace all fictional configuration entries.
+- [ ] Confirm exact supported models, firmware and payloads. Operators can now supply their controller/aircraft pairing through invitation-based self-registration; alternatively pre-provision it privately. No fictional pair should be distributed as a real setup.
 - [x] Configure the supplied Panama OAuth client locally; verify token acquisition/renewal and a protected read with normal TLS verification.
 - [ ] Confirm production credential ownership/rotation and traffic classification; verify actual aircraft writes and downstream processing during supervised acceptance.
 - [ ] Complete the intended pilot/account/declaration workflow separately; do not treat device telemetry setup as membership or flight approval.
@@ -64,3 +64,11 @@ Perform this under the lab's approved ground/flight procedures. Ground connectio
 ## Not yet verified
 
 Real Mavic 3 Enterprise/Matrice 400 telemetry, the supplied licence on hardware, controller TLS trust, Panama traffic writes/downstream Spotlight visibility, full flight operations or Cloud API 2 runtime compatibility. No production DNS, hosted server settings or aircraft settings were changed. Panama token requests and a protected read were performed from the local adaptor.
+
+## Self-onboarding evidence
+
+Invitation-based registration supports both target models without collecting serial numbers first. Pilot 2 supplies both equipment IDs. The local service is configured with an empty starting fleet; private invitations are issued when an operator is ready. Dynamic broker provisioning and exact per-device grants avoid restarting the service for new equipment.
+
+Automated tests cover expiry/replay, duplicate equipment, registration recovery, persistence/revocation, broker-control and aircraft-command denial, both supported models, and telemetry delivery from an initially empty fleet without restarting. Browser tests cover native IDs, missing aircraft, licence failure, retry, and saved-code recovery after a connection failure. Hardware, actual hosted signup, Pilot 2 TLS/licence and Panama traffic ingestion still need acceptance.
+
+Android note: Panama also accepted the Android client's HTTP Basic token authentication in a TLS-verified compatibility check. This did not install an Android setup or provision a separate Passport client for a device. Do not distribute the adaptor's shared Blender client secret in Android setup files.

@@ -14,6 +14,10 @@ function portal({
   activation = 200,
   loadFailure = false,
   storageFailure = false,
+  enrollment = false,
+  aircraft = "NEW-AIRCRAFT-001",
+  rawSerials = false,
+  enrollmentFailures = 0,
 } = {}) {
   const nodes = new Map(),
     calls = [],
@@ -28,6 +32,9 @@ function portal({
         className: "",
         disabled: false,
         listeners: {},
+        appendChild(child) {
+          (this.children ||= []).push(child);
+        },
         addEventListener(name, fn) {
           this.listeners[name] = fn;
         },
@@ -50,6 +57,7 @@ function portal({
     document: {
       documentElement: { lang: "en" },
       getElementById: node,
+      createElement: () => ({value: "", textContent: ""}),
       querySelectorAll: () => [],
     },
     localStorage: {
@@ -66,6 +74,10 @@ function portal({
     fetch: async (url, options) => {
       calls.push({ url, options });
       const responses = {
+        "/api/enrollment/options": {enabled: enrollment, models: ["Mavic 3 Enterprise", "Matrice 400"]},
+        "/api/enrollment/start": {token: "enrollment-session"},
+        "/api/enrollment/bootstrap": {app_id: "test-app", app_key: "test-key", license: "test-license"},
+        "/api/enrollment/complete": {token: "new-device-session", connection_code: "private-new-device-code", config},
         "/api/pilot/login": { token: "session-token" },
         "/api/pilot/bootstrap": {
           app_id: "test-app",
@@ -84,12 +96,13 @@ function portal({
         },
         "/api/pilot/logout": { status: "signed_out" },
       };
-      const status = url === "/api/pilot/activate" ? activation : 200;
+      const status = url === "/api/pilot/activate" ? activation :
+        url === "/api/enrollment/complete" && enrollmentFailures-- > 0 ? 503 : 200;
       return {
         ok: status === 200,
         status,
         json: async () =>
-          status === 200 ? responses[url] : { detail: "wrong_controller" },
+          status === 200 ? responses[url] : { detail: status === 503 ? "registration_pending" : "wrong_controller" },
       };
     },
   };
@@ -103,7 +116,10 @@ function portal({
         return wrap(false);
       },
       platformGetRemoteControllerSN() {
-        return wrap("EXAMPLE-RC-001");
+        return rawSerials ? "EXAMPLE-RC-001" : wrap("EXAMPLE-RC-001");
+      },
+      platformGetAircraftSN() {
+        return rawSerials ? aircraft : wrap(aircraft);
       },
       platformSetWorkspaceId() {
         return wrap("");
@@ -135,6 +151,14 @@ function portal({
     calls,
     nativeCalls,
     context,
+    async register() {
+      await new Promise(setImmediate);
+      node("invitation").value = "private-invitation";
+      node("aircraft-model").value = "Matrice 400";
+      node("controller-name").value = "My controller";
+      await node("enrollment-form").listeners.submit({ preventDefault() {} });
+      await new Promise(setImmediate);
+    },
     async connect() {
       node("code").value = "private-code";
       await node("connect-form").listeners.submit({ preventDefault() {} });
@@ -226,4 +250,50 @@ test("source sample age takes priority over recent server receipt", async () => 
       : original(url, options);
   await p.connect();
   assert.equal(p.node("aircraft-state").textContent, "Not recent");
+});
+
+test("self registration reads both IDs and saves the private device code", async () => {
+  const p = portal({enrollment: true, rawSerials: true});
+  await p.register();
+  const completion = p.calls.find(c => c.url === "/api/enrollment/complete");
+  assert.deepEqual(JSON.parse(completion.options.body), {
+    gateway_sn: "EXAMPLE-RC-001", aircraft_sn: "NEW-AIRCRAFT-001",
+    aircraft_model: "Matrice 400", name: "My controller",
+  });
+  assert.equal(p.node("invitation").value, "");
+  assert.equal(p.node("new-code").value, "private-new-device-code");
+  assert.equal(p.node("save-code-card").hidden, false);
+  assert.equal(p.node("connection-card").hidden, false);
+});
+test("self registration requires the connected aircraft and a valid licence", async () => {
+  for (const options of [{aircraft: ""}, {license: false}]) {
+    const p = portal({enrollment: true, ...options});
+    await p.register();
+    assert(!p.calls.some(c => c.url === "/api/enrollment/complete"));
+    assert(!p.nativeCalls.some(c => c[0] === "load"));
+    assert(p.node("enrollment-message").textContent.length > 0);
+  }
+});
+test("provisioning retry reuses the enrollment session", async () => {
+  const p = portal({enrollment: true, enrollmentFailures: 1});
+  await p.register();
+  assert.match(p.node("enrollment-message").textContent, /Registration is saved/);
+  assert(!p.nativeCalls.some(c => c[0] === "load"));
+  await p.register();
+  assert.equal(p.calls.filter(c => c.url === "/api/enrollment/start").length, 1);
+  assert.equal(p.node("connection-card").hidden, false);
+});
+test("ordinary browser cannot self register", async () => {
+  const p = portal({enrollment: true, outside: true});
+  await p.register();
+  assert.equal(p.node("register").disabled, true);
+  assert(!p.calls.some(c => c.url === "/api/enrollment/start"));
+});
+test("connection failure after registration preserves the recovery code", async () => {
+  const p = portal({enrollment: true, loadFailure: true});
+  await p.register();
+  assert.equal(p.node("connection-card").hidden, true);
+  assert.equal(p.node("connect-card").hidden, false);
+  assert.equal(p.node("code").value, "private-new-device-code");
+  assert.equal(p.node("save-code-card").hidden, false);
 });

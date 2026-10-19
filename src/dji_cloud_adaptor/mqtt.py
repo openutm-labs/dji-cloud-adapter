@@ -46,7 +46,14 @@ class MqttReceiver:
         self.connected = False
         if not reason_code.is_failure:
             # Exact allow-listed topics, never a fleet-wide '#' subscription.
-            client.subscribe([(topic, 1) for topic in self.ingestor.subscriptions])
+            self.refresh_subscriptions()
+
+    def refresh_subscriptions(self):
+        topics = self.ingestor.subscriptions
+        if topics:
+            self.client.subscribe([(topic, 1) for topic in topics])
+        else:
+            self.connected = self.client.is_connected()
 
     def on_subscribe(self, client, userdata, mid, reason_codes, properties):
         self.connected = bool(reason_codes) and all(not reason.is_failure for reason in reason_codes)

@@ -1,6 +1,32 @@
 "use strict";
 const text = {
   en: {
+    firstTime: "First time here? Register this controller",
+    enrollStep: "FIRST-TIME SETUP",
+    enrollTitle: "Register your equipment",
+    enrollBody: "Use your private lab invitation. Pilot 2 reads the connected controller and aircraft IDs; you do not need to send serial numbers in advance.",
+    invitationLabel: "Lab invitation code",
+    modelLabel: "Aircraft model",
+    chooseModel: "Choose your aircraft",
+    nicknameLabel: "Controller nickname (optional)",
+    enrollGround: "Keep the aircraft on the ground, powered on and linked to this controller. One invitation registers one controller and its aircraft.",
+    register: "Register and connect →",
+    backToConnect: "I already have a connection code",
+    saveCodeTitle: "Keep your connection code",
+    saveCodeBody: "This code belongs to this controller. Save it privately for reconnecting later. Do not share it or include it in a screenshot.",
+    showCode: "Show code",
+    hideCode: "Hide code",
+    invalid_invitation: "Check your invitation code and its expiry with your coordinator.",
+    invitation_used: "This invitation has already registered a controller. Use its saved connection code or ask your coordinator for help.",
+    enrollment_session_expired: "Setup expired. Enter your invitation again; if registration completed, use the saved connection code.",
+    unsupported_model: "This aircraft model is not enabled for self-registration. Ask your coordinator for its approved route.",
+    equipment_identity_invalid: "Pilot 2 could not read two different equipment IDs. Check the aircraft link on the ground and retry.",
+    equipment_already_registered: "This equipment is already registered. Use its existing connection code or contact your coordinator; do not register it under another identity.",
+    enrollment_capacity: "The lab's registration limit was reached. Contact your coordinator.",
+    registration_pending: "Registration is saved, but the connection service is not ready yet. Keep this page open and tap Register and connect again to retry.",
+    aircraftRequired: "Pilot 2 could not read the connected aircraft ID. Power on and link the supported aircraft on the ground, then retry.",
+    device_revoked: "This device's access was revoked. Contact your coordinator.",
+
     eyebrow: "DJI PILOT 2 CONNECTION",
     title: "Your flight. Connected.",
     intro:
@@ -11,10 +37,10 @@ const text = {
     step: "CONTROLLER SETUP",
     connectTitle: "Connect to your lab",
     connectBody:
-      "Use the private connection code your coordinator gave you for this controller.",
+      "Already registered? Use this controller’s saved connection code. For first-time setup, choose Register this controller below.",
     codeLabel: "Connection code",
     codeHelp:
-      "This is a controller setup code, not your Passport password. Keep it private.",
+      "Use the saved controller code here, not a lab invitation or Passport password. Keep it private.",
     connect: "Connect telemetry →",
     connectionLabel: "CONNECTION STATUS",
     controller: "Controller connection",
@@ -61,6 +87,32 @@ const text = {
     noSecret: "No connection code is saved in this browser.",
   },
   es: {
+    firstTime: "¿Primera vez? Registre este controlador",
+    enrollStep: "CONFIGURACIÓN INICIAL",
+    enrollTitle: "Registre su equipo",
+    enrollBody: "Use la invitación privada del laboratorio. Pilot 2 lee los identificadores del controlador y la aeronave conectados; no necesita enviar números de serie previamente.",
+    invitationLabel: "Código de invitación del laboratorio",
+    modelLabel: "Modelo de aeronave",
+    chooseModel: "Elija su aeronave",
+    nicknameLabel: "Nombre del controlador (opcional)",
+    enrollGround: "Mantenga la aeronave en tierra, encendida y enlazada con este controlador. Cada invitación registra un controlador y su aeronave.",
+    register: "Registrar y conectar →",
+    backToConnect: "Ya tengo un código de conexión",
+    saveCodeTitle: "Conserve su código de conexión",
+    saveCodeBody: "Este código pertenece a este controlador. Guárdelo de forma privada para reconectar. No lo comparta ni lo incluya en capturas.",
+    showCode: "Mostrar código",
+    hideCode: "Ocultar código",
+    invalid_invitation: "Compruebe el código de invitación y su vencimiento con el coordinador.",
+    invitation_used: "Esta invitación ya registró un controlador. Use su código de conexión guardado o consulte al coordinador.",
+    enrollment_session_expired: "La configuración venció. Introduzca otra vez la invitación; si terminó el registro, use el código de conexión guardado.",
+    unsupported_model: "Este modelo no tiene autorregistro habilitado. Consulte su ruta aprobada con el coordinador.",
+    equipment_identity_invalid: "Pilot 2 no pudo leer dos identificadores distintos. Revise el enlace de la aeronave en tierra y reintente.",
+    equipment_already_registered: "El equipo ya está registrado. Use su código existente o consulte al coordinador; no lo registre con otra identidad.",
+    enrollment_capacity: "Se alcanzó el límite de registros del laboratorio. Contacte con el coordinador.",
+    registration_pending: "El registro está guardado, pero el servicio de conexión aún no está listo. Mantenga esta página abierta y toque Registrar y conectar de nuevo.",
+    aircraftRequired: "Pilot 2 no pudo leer el identificador de la aeronave. Encienda y enlace la aeronave compatible en tierra y reintente.",
+    device_revoked: "Se revocó el acceso del dispositivo. Contacte con el coordinador.",
+
     eyebrow: "CONEXIÓN CON DJI PILOT 2",
     title: "Su vuelo, conectado.",
     intro:
@@ -71,10 +123,10 @@ const text = {
     step: "CONFIGURACIÓN DEL CONTROLADOR",
     connectTitle: "Conecte con su laboratorio",
     connectBody:
-      "Use el código privado que el coordinador le entregó para este controlador.",
+      "¿Ya está registrado? Use el código guardado de este controlador. Para la primera vez, elija Registre este controlador abajo.",
     codeLabel: "Código de conexión",
     codeHelp:
-      "Es un código de configuración del controlador, no su contraseña de Passport. Manténgalo privado.",
+      "Use aquí el código guardado, no la invitación ni la contraseña Passport. Manténgalo privado.",
     connect: "Conectar telemetría →",
     connectionLabel: "ESTADO DE LA CONEXIÓN",
     controller: "Conexión del controlador",
@@ -131,6 +183,7 @@ let token = "",
   nativeConnected = false,
   currentStatus = null,
   timer = null;
+let enrollmentToken = "";
 const bridge = window.djiBridge;
 const el = (id) => document.getElementById(id);
 const t = (key) => text[language][key] || text[language].generic;
@@ -150,11 +203,15 @@ function native(method, ...args) {
   if (!bridge || typeof bridge[method] !== "function")
     throw new Error("bridgeError");
   let value = bridge[method](...args);
+  if (["platformGetRemoteControllerSN", "platformGetAircraftSN"].includes(method) &&
+      typeof value === "string" && !value.trim().startsWith("{")) return value;
   if (typeof value === "string") {
     try {
       value = JSON.parse(value);
     } catch {
-      throw new Error("bridgeError");
+      if (!["platformGetRemoteControllerSN", "platformGetAircraftSN"].includes(method))
+        throw new Error("bridgeError");
+      // Some Pilot versions return the documented serial string directly.
     }
   }
   if (value && typeof value === "object" && "code" in value) {
@@ -178,13 +235,13 @@ function native(method, ...args) {
   }
   return value;
 }
-async function api(path, body) {
+async function api(path, body, authToken = token) {
   const response = await fetch(path, {
     method: body === undefined ? "GET" : "POST",
     cache: "no-store",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
@@ -281,6 +338,7 @@ function showConnection(config) {
   el("device-name").textContent = config.device_name;
   el("workspace-name").textContent = config.workspace_name;
   el("connect-card").hidden = true;
+  el("enrollment-card").hidden = true;
   el("connection-card").hidden = false;
   if (timer) clearInterval(timer);
   poll();
@@ -328,6 +386,9 @@ async function disconnect(revoke = true) {
   }
   if (revoke && token) await api("/api/pilot/logout", {}).catch(() => {});
   token = "";
+  el("new-code").value = "";
+  el("new-code").type = "password";
+  el("save-code-card").hidden = true;
   nativeConnected = false;
   currentStatus = null;
   el("connect-card").hidden = false;
@@ -394,3 +455,87 @@ translate();
 el("browser-notice").hidden = Boolean(bridge);
 el("connect").disabled = !bridge;
 resume();
+
+// A lab invitation is separate from both Passport and an existing controller code.
+el("open-enrollment").addEventListener("click", () => {
+  el("connect-card").hidden = true;
+  el("enrollment-card").hidden = false;
+});
+el("cancel-enrollment").addEventListener("click", () => {
+  el("connect-card").hidden = false;
+  el("enrollment-card").hidden = true;
+  el("enrollment-message").textContent = "";
+});
+el("show-new-code").addEventListener("click", () => {
+  const show = el("new-code").type === "password";
+  el("new-code").type = show ? "text" : "password";
+  el("show-new-code").textContent = t(show ? "hideCode" : "showCode");
+});
+el("enrollment-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!bridge) return;
+  el("register").disabled = true;
+  el("enrollment-message").textContent = t("connecting");
+  let registered = false;
+  try {
+    if (!enrollmentToken) {
+      const session = await api("/api/enrollment/start", {
+        invitation_code: el("invitation").value.trim(),
+      }, "");
+      enrollmentToken = session.token;
+      el("invitation").value = "";
+      el("invitation").required = false;
+    }
+    const dji = await api("/api/enrollment/bootstrap", undefined, enrollmentToken);
+    if (native("platformVerifyLicense", dji.app_id, dji.app_key, dji.license) !== true)
+      throw new Error("licenseError");
+    const gateway_sn = native("platformGetRemoteControllerSN");
+    let aircraft_sn;
+    try { aircraft_sn = native("platformGetAircraftSN"); }
+    catch { throw new Error("aircraftRequired"); }
+    if (typeof aircraft_sn !== "string" || !aircraft_sn.trim())
+      throw new Error("aircraftRequired");
+    const result = await api("/api/enrollment/complete", {
+      gateway_sn, aircraft_sn,
+      aircraft_model: el("aircraft-model").value,
+      name: el("controller-name").value.trim(),
+    }, enrollmentToken);
+    token = result.token;
+    registered = true;
+    el("new-code").value = result.connection_code;
+    el("save-code-card").hidden = false;
+    enrollmentToken = "";
+    configure(result.config);
+    el("enrollment-message").textContent = "";
+  } catch (error) {
+    if (error.status === 401) {
+      enrollmentToken = "";
+      el("invitation").required = true;
+    }
+    // Retain the temporary enrollment session on a provisioning outage, allowing safe retries.
+    if (registered) {
+      el("enrollment-card").hidden = true;
+      el("connection-card").hidden = true;
+      el("connect-card").hidden = false;
+      el("code").value = el("new-code").value;
+      el("message").textContent = t(error.message);
+    } else el("enrollment-message").textContent = t(error.message);
+  } finally {
+    el("register").disabled = !bridge;
+  }
+});
+async function enrollmentOptions() {
+  try {
+    const options = await api("/api/enrollment/options", undefined, "");
+    if (!options || !options.enabled) return;
+    for (const model of options.models) {
+      const option = document.createElement("option");
+      option.value = model;
+      option.textContent = model;
+      el("aircraft-model").appendChild(option);
+    }
+    el("open-enrollment").hidden = false;
+  } catch { /* Existing device-code connections remain available if options cannot load. */ }
+}
+el("register").disabled = !bridge;
+enrollmentOptions();

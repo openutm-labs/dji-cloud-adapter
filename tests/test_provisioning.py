@@ -81,3 +81,18 @@ def test_access_check_cli_does_not_print_credentials_or_responses(settings, tmp_
     assert "blender_read_http_403" in output.err
     for secret in ("test-blender-token", "test-app-key", "test-license", "test-admin-token-"):
         assert secret not in output.err + output.out
+
+
+def test_self_onboarding_starts_with_no_inventory_and_private_broker_control(tmp_path):
+    source = Path(__file__).parents[1] / "config.self-onboarding.example.json"
+    output = tmp_path / "runtime"
+    settings = initialize(source, output)
+    assert settings.devices == [] and settings.enrollment.enabled
+    assert len(settings.mqtt.provisioner_password.get_secret_value()) >= 32
+    broker = (output / "broker/dynamic-security.json").read_text()
+    assert settings.mqtt.provisioner_password.get_secret_value() not in broker
+    assert settings.mqtt.worker_password.get_secret_value() not in broker
+    assert "mosquitto_dynamic_security.so" in (output / "broker/mosquitto.conf").read_text()
+    for path in output.rglob("*"):
+        if path.is_file():
+            assert stat.S_IMODE(path.stat().st_mode) == 0o600

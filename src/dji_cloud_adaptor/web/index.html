@@ -43,8 +43,8 @@
           <div class="step-label" data-text="step">CONTROLLER SETUP</div>
           <h2 data-text="connectTitle">Connect to your lab</h2>
           <p data-text="connectBody">
-            Use the private connection code your coordinator gave you for this
-            controller.
+            Already registered? Use this controller’s saved connection code.
+            For first-time setup, choose Register this controller below.
           </p>
           <form id="connect-form">
             <label for="code" data-text="codeLabel">Connection code</label>
@@ -59,14 +59,43 @@
               aria-describedby="code-help"
             />
             <p id="code-help" class="hint" data-text="codeHelp">
-              This is a controller setup code, not your Passport password. Keep
-              it private.
+              Use the saved controller code here, not a lab invitation or Passport
+              password. Keep it private.
             </p>
             <button id="connect" type="submit" data-text="connect">
               Connect telemetry <span aria-hidden="true">→</span>
             </button>
           </form>
+          <button id="open-enrollment" type="button" class="secondary" data-text="firstTime" hidden>
+            First time here? Register this controller
+          </button>
           <p id="message" role="status" aria-live="polite"></p>
+        </section>
+        <section id="enrollment-card" class="card" hidden>
+          <div class="step-label" data-text="enrollStep">FIRST-TIME SETUP</div>
+          <h2 data-text="enrollTitle">Register your equipment</h2>
+          <p data-text="enrollBody">Use your private lab invitation. Pilot 2 reads the connected controller and aircraft IDs; you do not need to send serial numbers in advance.</p>
+          <form id="enrollment-form">
+            <label for="invitation" data-text="invitationLabel">Lab invitation code</label>
+            <input id="invitation" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="150" required />
+            <label for="aircraft-model" data-text="modelLabel">Aircraft model</label>
+            <select id="aircraft-model" required>
+              <option value="" data-text="chooseModel">Choose your aircraft</option>
+            </select>
+            <label for="controller-name" data-text="nicknameLabel">Controller nickname (optional)</label>
+            <input id="controller-name" type="text" maxlength="80" autocomplete="off" />
+            <p class="hint" data-text="enrollGround">Keep the aircraft on the ground, powered on and linked to this controller. One invitation registers one controller and its aircraft.</p>
+            <button id="register" type="submit" data-text="register">Register and connect →</button>
+          </form>
+          <p id="enrollment-message" role="status" aria-live="polite"></p>
+          <button id="cancel-enrollment" class="secondary" type="button" data-text="backToConnect">I already have a connection code</button>
+        </section>
+        <section id="save-code-card" class="card" hidden>
+          <h2 data-text="saveCodeTitle">Keep your connection code</h2>
+          <p data-text="saveCodeBody">This code belongs to this controller. Save it privately for reconnecting later. Do not share it or include it in a screenshot.</p>
+          <label for="new-code" data-text="codeLabel">Connection code</label>
+          <input id="new-code" type="password" readonly autocomplete="off" />
+          <button id="show-new-code" class="secondary" type="button" data-text="showCode">Show code</button>
         </section>
         <section id="connection-card" class="card" hidden>
           <div class="step-label" data-text="connectionLabel">

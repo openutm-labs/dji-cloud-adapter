@@ -32,8 +32,8 @@ jobs:
           git diff --exit-code -- requirements.lock
       - run: docker pull eclipse-mosquitto:2.1.2-alpine
       - run: docker build -t dji-cloud-adaptor-app .
-      - name: Real broker and container recovery tests
+      - name: Real broker, self-onboarding and container recovery tests
         env:
           RUN_MQTT_INTEGRATION: '1'
           RUN_STACK_INTEGRATION: '1'
-        run: uv run pytest tests/test_mqtt_integration.py tests/test_stack_integration.py -q
+        run: uv run pytest tests/test_mqtt_integration.py tests/test_stack_integration.py tests/test_enrollment.py -q

@@ -16,7 +16,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .blender import BlenderClient, Forwarder
+from .broker import BrokerProvisioner, BrokerUnavailable
 from .config import IDENTIFIER, Settings, load_settings
+from .enrollment import EnrollmentError, EnrollmentStore
 from .mqtt import MqttReceiver
 from .store import Store
 
@@ -31,8 +33,59 @@ class Activate(BaseModel):
     gateway_sn: str = Field(pattern=IDENTIFIER.pattern)
 
 
+class EnrollmentLogin(BaseModel):
+    invitation_code: str = Field(min_length=30, max_length=150)
+
+
+class EnrollmentDevice(BaseModel):
+    gateway_sn: str = Field(pattern=IDENTIFIER.pattern)
+    aircraft_sn: str = Field(pattern=IDENTIFIER.pattern)
+    aircraft_model: str = Field(min_length=1, max_length=100)
+    name: str = Field(default="", max_length=80)
+
+
 def create_app(settings: Settings, store: Store, *, background=True, transport=None) -> FastAPI:
+    registry = EnrollmentStore(store)
+    static_devices = list(settings.devices)
+    provisioning_lock = asyncio.Lock()
+    synced, disabled = set(), set()
+
+    def refresh_devices():
+        devices = static_devices + registry.devices()
+        try:
+            Settings.model_validate({**settings.model_dump(), "devices": devices})
+        except ValueError:
+            raise EnrollmentError("registration_conflict") from None
+        settings.devices = devices
+
+    refresh_devices()
     receiver = MqttReceiver(settings, store)
+
+    async def provision(device):
+        fleet = static_devices + [d for d in registry.devices() if d.id != device.id] + [device]
+        await asyncio.to_thread(app.state.provisioner.sync, device, fleet)
+        registry.activate(device.id)
+        synced.add(device.id)
+        refresh_devices()
+        if receiver.client.is_connected():
+            receiver.refresh_subscriptions()
+
+    async def reconcile():
+        while True:
+            try:
+                async with provisioning_lock:
+                    refresh_devices()
+                    for device in registry.devices("revoked"):
+                        if device.id not in disabled:
+                            await asyncio.to_thread(app.state.provisioner.revoke, device)
+                            disabled.add(device.id)
+                    for device in registry.devices() + registry.devices("pending"):
+                        if device.id not in synced:
+                            await provision(device)
+            except (BrokerUnavailable, EnrollmentError):
+                # Retry from durable registry state; never log credentials or serials.
+                pass
+            await asyncio.sleep(5)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -40,12 +93,19 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
             forwarder = Forwarder(settings, store, BlenderClient(settings, client))
             app.state.forwarder = forwarder
             task = None
+            enrollment_task = None
             if background:
                 receiver.start()
                 task = asyncio.create_task(forwarder.run())
+                if settings.mqtt.provisioner_password.get_secret_value():
+                    enrollment_task = asyncio.create_task(reconcile())
             try:
                 yield
             finally:
+                if enrollment_task:
+                    enrollment_task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await enrollment_task
                 if task:
                     task.cancel()
                     with suppress(asyncio.CancelledError):
@@ -54,6 +114,8 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
 
     app = FastAPI(title="DJI Cloud Adaptor", lifespan=lifespan, docs_url=None, openapi_url=None)
     app.state.receiver = receiver
+    app.state.registry = registry
+    app.state.provisioner = BrokerProvisioner(settings)
     # This process is the rate-limit boundary; deploy exactly one worker per database.
     attempts = defaultdict(deque)
 
@@ -91,7 +153,11 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
         token = bearer(request)
         row = store.session(token, time.time())
         device = settings.device(row["device_id"]) if row else None
-        if not device or not hmac.compare_digest(row["credential_revision"], device.connection_code_sha256):
+        if (
+            not device
+            or registry.is_revoked(device.id)
+            or not hmac.compare_digest(row["credential_revision"], device.connection_code_sha256)
+        ):
             raise HTTPException(401, "sign_in_required")
         if activated and not row["activated"]:
             raise HTTPException(403, "controller_verification_required")
@@ -120,6 +186,111 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
         with store.connection() as db:
             db.execute("SELECT 1")
         return {"status": "ok"}
+
+    def enrollment_available():
+        if not settings.enrollment.enabled:
+            raise HTTPException(404, "enrollment_not_available")
+        if not settings.dji.configured:
+            raise HTTPException(503, "dji_configuration_pending")
+
+    @app.get("/api/enrollment/options")
+    async def enrollment_options():
+        return {
+            "enabled": settings.enrollment.enabled,
+            "models": settings.enrollment.allowed_models if settings.enrollment.enabled else [],
+            "workspace_name": settings.workspace_name,
+        }
+
+    @app.post("/api/enrollment/start")
+    async def enrollment_start(body: EnrollmentLogin, request: Request):
+        enrollment_available()
+        enrollment_rate(request)
+        try:
+            token, expires = registry.start(body.invitation_code)
+        except EnrollmentError as exc:
+            raise HTTPException(401, str(exc)) from None
+        return {"token": token, "expires_at": expires}
+
+    def enrollment_rate(request):
+        now = time.time()
+        queue = attempts[(request.client.host if request.client else "unknown", "enrollment")]
+        while queue and queue[0] < now - 60:
+            queue.popleft()
+        if len(queue) >= 20:
+            raise HTTPException(429, "try_later")
+        queue.append(now)
+        if len(attempts) > 10000:
+            for key in list(attempts):
+                if not attempts[key] or attempts[key][-1] < now - 60:
+                    del attempts[key]
+
+    @app.get("/api/enrollment/bootstrap")
+    async def enrollment_bootstrap(request: Request):
+        enrollment_available()
+        try:
+            registry.session(bearer(request))
+        except EnrollmentError as exc:
+            raise HTTPException(401, str(exc)) from None
+        return {
+            "app_id": settings.dji.app_id,
+            "app_key": settings.dji.app_key.get_secret_value(),
+            "license": settings.dji.license.get_secret_value(),
+        }
+
+    @app.post("/api/enrollment/complete")
+    async def enrollment_complete(body: EnrollmentDevice, request: Request):
+        enrollment_available()
+        enrollment_rate(request)
+        if body.aircraft_model not in settings.enrollment.allowed_models:
+            raise HTTPException(422, "unsupported_model")
+        if body.gateway_sn == body.aircraft_sn:
+            raise HTTPException(422, "equipment_identity_invalid")
+        async with provisioning_lock:
+            try:
+                registry.session(bearer(request))
+                existing = (
+                    static_devices
+                    + registry.devices()
+                    + registry.devices("pending")
+                    + registry.devices("revoked")
+                )
+                for device in existing:
+                    if (
+                        body.gateway_sn in {a.serial for a in device.aircraft}
+                        or any(
+                            a.serial == body.aircraft_sn and device.gateway_sn != body.gateway_sn
+                            for a in device.aircraft
+                        )
+                        or body.aircraft_sn == device.gateway_sn
+                    ):
+                        raise EnrollmentError("equipment_already_registered")
+                if any(d.gateway_sn == body.gateway_sn for d in static_devices):
+                    raise EnrollmentError("equipment_already_registered")
+                device = registry.reserve(
+                    bearer(request),
+                    body.gateway_sn,
+                    body.aircraft_sn,
+                    body.aircraft_model,
+                    body.name,
+                    settings.enrollment.max_devices,
+                )
+                await provision(device)
+                # Return the same code/session after a lost response, without taking over another device.
+                token = secrets.token_urlsafe(32)
+                expires = time.time() + settings.session_hours * 3600
+                store.create_session(token, device.id, device.connection_code_sha256, expires)
+                row = store.session(token, time.time())
+                store.activate(row["token_hash"])
+                return {
+                    "token": token,
+                    "connection_code": registry.code(device.id),
+                    "config": device_config(row, device),
+                }
+            except EnrollmentError as exc:
+                status = 401 if str(exc) in {"enrollment_session_expired", "invalid_invitation"} else 409
+                raise HTTPException(status, str(exc)) from None
+            except BrokerUnavailable:
+                raise HTTPException(503, "registration_pending") from None
 
     @app.get("/readyz")
     async def ready():
@@ -155,7 +326,11 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
                 if not attempts[key] or attempts[key][-1] < now - 60:
                     del attempts[key]
         digest = hashlib.sha256(body.code.encode()).hexdigest()
-        if not device or not hmac.compare_digest(digest, device.connection_code_sha256):
+        if (
+            not device
+            or registry.is_revoked(device.id)
+            or not hmac.compare_digest(digest, device.connection_code_sha256)
+        ):
             raise HTTPException(401, "invalid_connection_code")
         if not settings.dji.configured:
             raise HTTPException(503, "dji_configuration_pending")

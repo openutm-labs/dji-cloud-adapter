@@ -67,11 +67,26 @@ class Mqtt(Model):
     client_id: str = Field(pattern=IDENTIFIER.pattern)
     tls: bool = False
     ca_file: str | None = None
+    provisioner_username: str = Field(default="adaptor-enrollment", pattern=IDENTIFIER.pattern)
+    provisioner_password: SecretStr = SecretStr("")
 
     @field_validator("worker_password")
     @classmethod
     def valid_broker_password(cls, value):
         return Device.valid_broker_password(value)
+
+
+class Enrollment(Model):
+    enabled: bool = False
+    max_devices: int = Field(default=100, ge=1, le=1000)
+    allowed_models: list[str] = Field(default_factory=lambda: ["Mavic 3 Enterprise", "Matrice 400"])
+
+    @field_validator("allowed_models")
+    @classmethod
+    def approved_models(cls, value):
+        if not value or len(value) != len(set(value)) or set(value) - {"Mavic 3 Enterprise", "Matrice 400"}:
+            raise ValueError("Select supported enrollment models")
+        return value
 
 
 class OAuth(Model):
@@ -128,7 +143,8 @@ class Settings(Model):
     dji: Dji = Field(default_factory=Dji)
     mqtt: Mqtt
     blender: Blender
-    devices: list[Device] = Field(min_length=1)
+    devices: list[Device] = Field(default_factory=list)
+    enrollment: Enrollment = Field(default_factory=Enrollment)
     max_sample_age_seconds: int = Field(default=60, ge=5, le=300)
     max_future_seconds: int = Field(default=15, ge=0, le=60)
     session_hours: int = Field(default=12, ge=1, le=24)
@@ -137,6 +153,13 @@ class Settings(Model):
 
     @model_validator(mode="after")
     def validate_deployment(self):
+        provisioner = self.mqtt.provisioner_password.get_secret_value()
+        if not self.devices and not self.enrollment.enabled and not provisioner:
+            raise ValueError("Configure devices or enable invitation-based enrollment")
+        if self.enrollment.enabled and len(provisioner) < 32:
+            raise ValueError("Enrollment needs a private broker provisioner password")
+        if provisioner and (len(provisioner) < 32 or any(c in provisioner for c in "\r\n\x00")):
+            raise ValueError("Invalid broker provisioner password")
         check_url(self.public_url, {"https"}, self.allow_insecure_development)
         if urlsplit(self.public_url).path not in {"", "/"}:
             raise ValueError("Use a dedicated hostname, not a public_url subpath")
@@ -157,6 +180,11 @@ class Settings(Model):
             raise ValueError("A controller cannot also be an aircraft")
         if self.mqtt.worker_username in {d.mqtt_username for d in self.devices}:
             raise ValueError("Worker and controller MQTT identities must differ")
+        if self.mqtt.provisioner_username in {
+            self.mqtt.worker_username,
+            *(d.mqtt_username for d in self.devices),
+        }:
+            raise ValueError("Broker provisioner identity must be separate")
         return self
 
     def device(self, device_id: str) -> Device | None:

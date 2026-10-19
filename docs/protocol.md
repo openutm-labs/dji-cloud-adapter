@@ -6,7 +6,7 @@ Reviewed 19 October 2026. The relevant path is a **third-party cloud connection 
 
 ## Onboarding handshake
 
-1. A coordinator allow-lists the controller and its aircraft in private server configuration and delivers that controller's connection code privately.
+1. The coordinator issues a private one-use invitation without collecting serials. The operator chooses a supported aircraft model, and Pilot 2 supplies the controller/aircraft IDs; the server registers the pairing and returns its private connection code. Alternatively, the coordinator pre-provisions a pair and issues its code. See [self-onboarding](self-onboarding.md).
 2. The pilot opens our HTTPS address inside **Cloud Service → Open Platforms** in Pilot 2.
 3. The page exchanges its connection code for a limited adapter session. Only authenticated sessions can retrieve our DJI application licence parameters.
 4. The page calls `platformVerifyLicense(appId, appKey, license)` and checks the result.
@@ -30,6 +30,8 @@ The adapter's session token is stored hashed server-side. Pilot 2 may store it i
 | Controller OSD/state | The broker accepts the controller's own publications, but they are not mapped as aircraft positions. |
 | Aircraft state / partial OSD | State is not required for this position-only receiver. Partial OSD cannot inherit old coordinates. |
 | Services, property writes, DRC | The adapter never publishes these. No configured broker role can publish aircraft commands. |
+
+With self-onboarding enabled, Mosquitto dynamic-security provisions exact per-device grants and refreshes the worker role/subscriptions without restarting other connections. The separate server-side provisioner alone has broker-control access. Registration/invitation state and device secrets persist in the private SQLite volume; broker role state persists in the broker volume.
 
 The worker subscribes to exact registered topics, not `#`. A controller can publish only its own status/OSD/state and its assigned aircraft's OSD/state. Pilot 2 can subscribe to its service inbox, but **no configured client can publish to it**. This accommodates the client's normal subscriptions without granting a control-command path.
 

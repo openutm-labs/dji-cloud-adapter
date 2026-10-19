@@ -16,6 +16,7 @@ flowchart LR
 
 ## Start here
 
+- Self-onboarding: [issue private invitations without collecting serials](docs/self-onboarding.md). Operators register from either supported controller; no equipment is needed by the coordinator in advance.
 - Pilots: [English connection guide](docs/pilot-en.md) · [Guía en español](docs/pilot-es.md).
 - Service owners: [setup and hosting](docs/deployment.md).
 - Developers: [DJI protocol and design](docs/protocol.md) · [Blender contract](docs/blender.md).
