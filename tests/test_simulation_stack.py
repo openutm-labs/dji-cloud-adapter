@@ -129,6 +129,8 @@ def test_built_stack_through_verified_https_wss(settings):
             network,
             "--network-alias",
             "blender-mock",
+            "--user",
+            f"{os.getuid()}:{os.getgid()}",
             "-p",
             "127.0.0.1::8080",
             "-v",
