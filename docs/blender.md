@@ -4,7 +4,7 @@
 
 ## First-version endpoint
 
-`POST /flight_stream/set_air_traffic/{session_id}` with `Authorization: Bearer ...` and an `observations` array. This route is present in the [Panama hosted OpenAPI document](https://blender.panama.openutm.net/openapi.json).
+`POST /flight_stream/set_air_traffic/{session_id}` with `Authorization: Bearer ...` and an `observations` array. Verify this contract against your deployment’s OpenAPI document at `<BLENDER_BASE_URL>/openapi.json`.
 
 The adapter generates a stable UUID traffic session per configured aircraft. It is not an automatically created or approved operation. We do not call declaration, approval or DSS-submission endpoints.
 
@@ -18,30 +18,28 @@ The adapter generates a stable UUID traffic session per configured aircraft. It 
 | Envelope `timestamp` | `timestamp` | Original milliseconds, unchanged. |
 | Configured aircraft | `icao_address` | Stable 24-character opaque `dji-...` ID; explicitly not an assigned ICAO address. |
 | `elevation`, speeds, heading, mode | `metadata` | Optional validated values; elevation is relative to take-off. |
-| Adapter metadata | `metadata` | Source, lab UUID, aircraft alias/model, altitude reference, source event ID, no asserted RID compliance. |
+| Adapter metadata | `metadata` | Source, workspace UUID, aircraft alias/model, altitude reference, source event ID, no asserted RID compliance. |
 
-The project's resolved API reference defines `traffic_source=11` as Network Remote-ID and `source_type=0` as direct/true rather than fused data. These are configurable defaults, **not an assertion that DJI Cloud telemetry fulfils an ASTM RID service**. Confirm the desired classification and display handling with the Blender team before Panama rollout.
+The project's resolved API reference defines `traffic_source=11` as Network Remote-ID and `source_type=0` as direct/true rather than fused data. These are configurable defaults, **not an assertion that DJI Cloud telemetry fulfils an ASTM RID service**. Confirm the desired classification and display handling with the Blender team before deployment.
 
 ## Authentication
 
-The hosted OpenAPI specification declares HTTP bearer security but does not document a token endpoint, audience, scopes or provisioning flow. Obtain those from the hosting team. The reviewed Blender source uses `flightblender.write` for this endpoint; hosted settings must still be confirmed.
+The adapter sends a bearer token to Blender. Obtain the token endpoint, client authentication method, audience, scopes and client credentials from the administrator of your deployment. The write endpoint requires `flightblender.write`; verify the target service’s configuration.
 
-### Panama server configuration
+### Server configuration
 
-The programme owner supplied the following authentication flow on 19 October 2026. It was checked from the local adaptor with normal TLS verification:
+The following addresses are examples, not deployed services:
 
-| Setting | Panama value |
+| Setting | Example / requirement |
 |---|---|
-| Blender base URL | `https://blender.panama.openutm.net` |
-| Token URL | `https://auth.panama.openutm.net/oauth/token/` |
-| Grant / client authentication | `client_credentials` / credentials in the form body |
-| Audience | `blender.panama.openutm.net` — hostname only, not a Markdown link or an HTTP URL |
-| Requested scope | `flightblender.read flightblender.write` |
-| Client ID and secret | Private runtime configuration only; obtain through the authorised service owner. |
+| Blender base URL | `https://blender.example.org` |
+| Token URL | `https://auth.example.org/oauth/token/` |
+| Grant / client authentication | `client_credentials` / credentials in the form body; issuer must accept `client_secret_post` |
+| Audience | The exact value required by the issuer, if any; for example `blender.example.org` |
+| Requested scope | `flightblender.read flightblender.write`; confirm permitted scopes with the service administrator |
+| Client ID and secret | Private server configuration only; obtain through the authorised service owner |
 
-Token issuance, cache reuse, forced renewal and a protected read were verified. The protected surveillance-health GET returned 401 without a token and 200 with it. No token or response body is retained in the public evidence. No aircraft observation or declaration was submitted; write-path acceptance and downstream persistence still need a supervised real-device check. The supplied credentials have been configured only in the local ignored runtime, not in a hosted service or image.
-
-Do not use `curl -k` or disable certificate verification. Both Panama endpoints passed normal HTTPS verification during this check. Never put the client secret in a command argument, shared shell history, pilot setup file or documentation.
+Keep TLS certificate verification enabled. Never put the client secret in a command argument, shared shell history, controller setup file or documentation. Validate token acquisition/renewal and protected read access using the check below; these do not establish write acceptance or downstream persistence.
 
 Configure **one** server-side mode in private `runtime/config.json`:
 
@@ -73,9 +71,9 @@ Blender enqueues ingestion asynchronously. A successful response does not demons
 
 ## What the Blender team must confirm
 
-1. Continued validity/ownership of Panama's supplied OAuth client and its permissions; verify actual traffic writes during supervised acceptance. Token issuance and protected reads have been checked locally.
+1. OAuth client ownership, permitted scopes, token endpoint, audience and renewal; verify protected reads and actual traffic writes during supervised acceptance.
 2. Traffic-source classification, height datum/units, source timestamp interpretation and opaque aircraft identifier handling.
-3. That asynchronous ingestion workers and the intended Spotlight/other display consume this traffic feed correctly.
+3. That asynchronous ingestion workers and the intended downstream display consume this traffic feed correctly.
 4. Whether operations need binding to declarations. If so, agree a pilot/aircraft/operation mapping and implement a separate authorised workflow; do not equate a generated traffic UUID to regulatory approval.
 5. Historical data ingestion requirements, if any. This version intentionally does not import old flight logs into a live feed.
 

@@ -45,7 +45,7 @@ function portal({
   const config = {
     public_url: "https://example.org",
     workspace_id: "00000000-0000-0000-0000-000000000001",
-    workspace_name: "Test lab",
+    workspace_name: "Test workspace",
     device_name: "Test controller",
     mqtt: {
       host: "wss://example.org/mqtt",
@@ -88,7 +88,7 @@ function portal({
         "/api/pilot/status": {
           counts: { accepted: 1 },
           device_name: "Test controller",
-          workspace_name: "Test lab",
+          workspace_name: "Test workspace",
           server_time: 100,
           last_received_at: 99,
           last_accepted_at: 99,

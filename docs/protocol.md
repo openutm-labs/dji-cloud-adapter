@@ -6,7 +6,7 @@ Reviewed 19 October 2026. The relevant path is a **third-party cloud connection 
 
 ## Onboarding handshake
 
-1. The coordinator issues a private one-use invitation without collecting serials. The operator chooses a supported aircraft model, and Pilot 2 supplies the controller/aircraft IDs; the server registers the pairing and returns its private connection code. Alternatively, the coordinator pre-provisions a pair and issues its code. See [self-onboarding](self-onboarding.md).
+1. The administrator issues a private one-use invitation without collecting serials. The operator chooses a supported aircraft model, and Pilot 2 supplies the controller/aircraft IDs; the server registers the pairing and returns its private connection code. Alternatively, the administrator pre-provisions a pair and issues its code. See [self-onboarding](self-onboarding.md).
 2. The pilot opens our HTTPS address inside **Cloud Service → Open Platforms** in Pilot 2.
 3. The page exchanges its connection code for a limited adapter session. Only authenticated sessions can retrieve our DJI application licence parameters.
 4. The page calls `platformVerifyLicense(appId, appKey, license)` and checks the result.
@@ -15,7 +15,7 @@ Reviewed 19 October 2026. The relevant path is a **third-party cloud connection 
 7. It loads the `api` module with our URL/session token and the `thing` module with MQTT host, username/password and a global connection callback.
 8. Pilot 2 connects to the broker, sends topology and aircraft OSD. The page polls our private status endpoint and checks the native connection state.
 
-The human pilot's Passport identity is not inferred from the controller's connection code. Human identity, authorisation and flight planning remain in the lab's separate workflow.
+The human pilot's identity is not inferred from the controller's connection code. Human identity, authorisation and flight planning remain in the organisation’s separate workflow.
 
 The adapter's session token is stored hashed server-side. Pilot 2 may store it in its API module; we do not store it or the setup code in browser localStorage. The language preference alone uses localStorage, and the page still works when that storage is disabled. Sessions expire after 12 hours by default. Per-controller MQTT passwords remain valid until revoked/rotated; session expiry alone is not broker credential revocation.
 
@@ -49,7 +49,7 @@ The official topic overview and individual device page disagree on the status to
 - Duplicate source samples are suppressed locally, including after restart. HTTP delivery is at least once: a lost HTTP response or process crash after server acceptance can still cause a duplicate at Blender. A stable `source_event_id` is supplied in metadata for downstream correlation; Blender-side idempotency is not assumed.
 - Old pending samples expire from live delivery without changing their original timestamps. They remain inspectable privately until retention pruning.
 
-Use one application process/worker and one configuration per SQLite database. Multiple labs should initially have separate deployments, broker credentials, databases and Blender access. This implementation is not a shared multi-tenant authorisation service.
+Use one application process/worker and one configuration per SQLite database. Multiple organisations should initially have separate deployments, broker credentials, databases and Blender access. This implementation is not a shared multi-tenant authorisation service.
 
 ## Version and evidence limits
 

@@ -1,9 +1,9 @@
 {
   "public_url": "https://cloud.example.org",
-  "workspace_name": "Panama Flying Labs",
+  "workspace_name": "Example workspace",
   "enrollment": {"enabled": true, "allowed_models": ["Mavic 3 Enterprise", "Matrice 400"], "max_devices": 100},
   "dji": {"app_id": "", "app_key": "", "license": ""},
   "mqtt": {"host": "mqtt", "port": 1883, "public_url": "wss://cloud.example.org/mqtt"},
-  "blender": {"base_url": "https://blender.panama.openutm.net", "bearer_token": "", "traffic_source": 11, "source_type": 0},
+  "blender": {"base_url": "https://blender.example.org", "bearer_token": "", "traffic_source": 11, "source_type": 0},
   "devices": []
 }

@@ -4,7 +4,7 @@
 
 ## Local verification, 19 October 2026
 
-The automated tests use fictional identifiers, synthetic telemetry and local receiver credentials. They do not contact the operational Panama API or command an aircraft.
+The automated tests use fictional identifiers, synthetic telemetry and local receiver credentials. They do not contact production APIs or command an aircraft.
 
 | Check | Evidence / scope |
 |---|---|
@@ -23,7 +23,7 @@ RUN_MQTT_INTEGRATION=1 RUN_STACK_INTEGRATION=1 uv run pytest -q
 node --test tests/portal.test.cjs
 ```
 
-CI is provided for the future repository. Remote CI has not run while repository creation is pending. The current test client emits a Starlette/httpx deprecation warning; the runtime HTTP client and test assertions still pass.
+The repository includes CI for automated verification. Check the workflow results for the commit you intend to deploy; they do not replace real-device acceptance. The current test client emits a Starlette/httpx deprecation warning; the runtime HTTP client and test assertions still pass.
 
 ## Browser previews
 
@@ -33,23 +33,19 @@ These are real screenshots of the local page in an ordinary browser, **not proof
 
 ![Vista previa local en español](images/connection-es.png)
 
-## Panama authentication check, 19 October 2026
+## Required before deployment
 
-The locally configured client obtained a Panama OAuth token over verified HTTPS. Cache reuse and forced renewal succeeded. The protected surveillance-health GET returned 401 without a token and 200 with the token. A credential-free check report is stored privately in the ignored runtime directory. No telemetry, declaration or account was created by this check. This evidence verifies token issuance and read access, not actual write acceptance or downstream persistence.
-
-## Required before Panama deployment
-
-- [ ] Create the repository and grant `not-vibhu` write access; push the reviewed implementation and run remote CI.
+- [ ] Review the release commit and its CI results before deployment.
 - [ ] Choose hosting, domain, persistent storage, monitoring and support ownership.
 - [ ] Verify the DJI application's Cloud API product selection and licence on the actual controller. Configured licence fields alone are not verification.
 - [ ] Confirm exact supported models, firmware and payloads. Operators can now supply their controller/aircraft pairing through invitation-based self-registration; alternatively pre-provision it privately. No fictional pair should be distributed as a real setup.
-- [x] Configure the supplied Panama OAuth client locally; verify token acquisition/renewal and a protected read with normal TLS verification.
+- [ ] Configure the target deployment’s OAuth client; verify token acquisition/renewal and a protected read with normal TLS verification.
 - [ ] Confirm production credential ownership/rotation and traffic classification; verify actual aircraft writes and downstream processing during supervised acceptance.
 - [ ] Complete the intended pilot/account/declaration workflow separately; do not treat device telemetry setup as membership or flight approval.
 
 ## Required on each real equipment combination
 
-Perform this under the lab's approved ground/flight procedures. Ground connection checks do not require starting motors or taking off.
+Perform this under the organisation’s approved ground/flight procedures. Ground connection checks do not require starting motors or taking off.
 
 1. Open the HTTPS address through Pilot 2's **Cloud Service → Open Platforms**. Confirm certificate trust and readable layout on the actual screen.
 2. Verify the licence, correct-controller setup and MQTT TLS/WebSocket connection. Record Pilot/firmware versions and the TLS chain used, without publishing credentials.
@@ -59,16 +55,14 @@ Perform this under the lab's approved ground/flight procedures. Ground connectio
 6. Simulate approved connectivity interruptions while on the ground. Check stale indicators, reconnects and that old samples are not republished as current positions.
 7. Test adapter/broker restart and controller access revocation under a supervised maintenance exercise. Check that old credentials cannot reconnect.
 8. Check that the pilot retains normal aircraft control and is never prompted for cloud flight-control authority by this adapter. Do not enable DRC or live flight controls for onboarding.
-9. If operational use is approved by the lab, conduct its supervised field-validation programme. Verify reporting and any declared-operation integration before wider rollout.
+9. If operational use is approved by the organisation, conduct its supervised field-validation programme. Verify reporting and any declared-operation integration before wider rollout.
 
 ## Not yet verified
 
-Real Mavic 3 Enterprise/Matrice 400 telemetry, the supplied licence on hardware, controller TLS trust, Panama traffic writes/downstream Spotlight visibility, full flight operations or Cloud API 2 runtime compatibility. No production DNS, hosted server settings or aircraft settings were changed. Panama token requests and a protected read were performed from the local adaptor.
+Real aircraft telemetry on each supported combination, application licence verification on hardware, controller TLS trust, target-deployment traffic writes/downstream visibility, full flight operations and Cloud API 2 runtime compatibility all require separate acceptance.
 
 ## Self-onboarding evidence
 
-Invitation-based registration supports both target models without collecting serial numbers first. Pilot 2 supplies both equipment IDs. The local service is configured with an empty starting fleet; private invitations are issued when an operator is ready. Dynamic broker provisioning and exact per-device grants avoid restarting the service for new equipment.
+Invitation-based registration supports both target models without collecting serial numbers first. Pilot 2 supplies both equipment IDs. A new deployment can start with an empty fleet; administrators issue private invitations when operators are ready. Dynamic broker provisioning and exact per-device grants avoid restarting the service for new equipment.
 
-Automated tests cover expiry/replay, duplicate equipment, registration recovery, persistence/revocation, broker-control and aircraft-command denial, both supported models, and telemetry delivery from an initially empty fleet without restarting. Browser tests cover native IDs, missing aircraft, licence failure, retry, and saved-code recovery after a connection failure. Hardware, actual hosted signup, Pilot 2 TLS/licence and Panama traffic ingestion still need acceptance.
-
-Android note: Panama also accepted the Android client's HTTP Basic token authentication in a TLS-verified compatibility check. This did not install an Android setup or provision a separate Passport client for a device. Do not distribute the adaptor's shared Blender client secret in Android setup files.
+Automated tests cover expiry/replay, duplicate equipment, registration recovery, persistence/revocation, broker-control and aircraft-command denial, both supported models, and telemetry delivery from an initially empty fleet without restarting. Browser tests cover native IDs, missing aircraft, licence failure, retry, and saved-code recovery after a connection failure. Hardware, actual hosted signup, Pilot 2 TLS/licence and target-deployment traffic ingestion still need acceptance.

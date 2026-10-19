@@ -2,7 +2,7 @@
 
 Receive aircraft telemetry through **DJI Pilot 2 → your MQTT broker → Flight Blender**. Pilots keep using Pilot 2; they do not install an OpenUTM APK on the controller for this route.
 
-**Status: initial implementation, locally tested; not hosted or validated on a real Pilot 2 controller.** Source is published at [openutm-labs/dji-cloud-adapter](https://github.com/openutm-labs/dji-cloud-adapter); hosting is pending. Supplied DJI application fields and Panama OAuth credentials are configured only in the private local runtime. Panama token acquisition/renewal and protected read access have been verified over HTTPS. Real controller/aircraft pairing, traffic-write acceptance and downstream verification remain necessary.
+**Status: initial implementation, locally tested; real-controller and deployment acceptance remain required.** A standalone service for compatible DJI Pilot 2 equipment and a configurable Flight Blender deployment. Source: [openutm-labs/dji-cloud-adapter](https://github.com/openutm-labs/dji-cloud-adapter).
 
 ```mermaid
 flowchart LR
@@ -16,22 +16,22 @@ flowchart LR
 
 ## Start here
 
-- Self-onboarding: [issue private invitations without collecting serials](docs/self-onboarding.md). Operators register from either supported controller; no equipment is needed by the coordinator in advance.
+- Self-onboarding: [issue private invitations without collecting serials](docs/self-onboarding.md). Operators register from either supported controller; no equipment is needed by the administrator in advance.
 - Pilots: [English connection guide](docs/pilot-en.md) · [Guía en español](docs/pilot-es.md).
 - Service owners: [setup and hosting](docs/deployment.md).
 - Developers: [DJI protocol and design](docs/protocol.md) · [Blender contract](docs/blender.md).
 - Before operational use: [acceptance checklist and test evidence](docs/acceptance.md).
 
-## Panama equipment coverage
+## Supported equipment
 
-| Reported aircraft | Cloud route in this implementation |
+Self-registration currently supports these aircraft/controller combinations, subject to DJI Cloud API compatibility and validation of the exact firmware and payload:
+
+| Aircraft | Controller |
 |---|---|
-| Matrice 400 + compatible controller + Pilot 2 | First target; confirm RC Plus 2 Enterprise Enhanced, firmware and payload. Needs real-device acceptance. |
-| Mavic 3 Enterprise + RC Pro Enterprise + Pilot 2 | First target; needs real-device acceptance. |
-| Phantom 4 Pro V2.0, Mavic 2 Pro, Air 2S, Mavic Air 2 | Not covered by this Pilot 2 Cloud API route. Use the separately validated Android SDK app or another integration. |
-| WingtraOne GEN II | Not a DJI aircraft; requires a different integration. |
+| Mavic 3 Enterprise | RC Pro Enterprise |
+| Matrice 400 | RC Plus 2 Enterprise Enhanced |
 
-DJI lists enterprise aircraft/controller combinations in its [Cloud API product support](https://developer.dji.com/doc/cloud-api-tutorial/en/overview/product-support.html). A controller accepting APKs does not establish Cloud API support. This project does not extend RC/RC 2 or older consumer aircraft to Cloud API.
+Check DJI's [Cloud API product support](https://developer.dji.com/doc/cloud-api-tutorial/en/overview/product-support.html) before deploying. Each combination needs real-device acceptance. This implementation does not automatically support every Cloud API product or aircraft that can install an APK.
 
 ## Implemented
 
@@ -49,7 +49,7 @@ No flight-control, remote-stick, take-off, landing, mission-upload or firmware-u
 
 It posts traffic observations to `/flight_stream/set_air_traffic/{session_id}`. It **does not automatically create flight declarations, assert flight permissions, assign pilot identities, or submit ASTM Remote ID flights**. Per-aircraft session IDs are traffic-feed identifiers, not automatically declared-operation IDs. See the [contract and remaining integration decisions](docs/blender.md).
 
-An HTTP acceptance is recorded as **API accepted**, not “flight successfully stored.” Blender processes observations asynchronously; the lab must check the downstream record/dashboard during acceptance.
+An HTTP acceptance is recorded as **API accepted**, not “flight successfully stored.” Blender processes observations asynchronously; the organisation must check the downstream record/dashboard during acceptance.
 
 Queued positions older than the configured live-feed age (60 seconds by default) are retained as expired records rather than replayed as current aircraft positions. This is not an offline flight-log uploader. Pilot-to-cloud connectivity still requires internet.
 
@@ -68,7 +68,7 @@ RUN_MQTT_INTEGRATION=1 uv run pytest tests/test_mqtt_integration.py -q
 RUN_STACK_INTEGRATION=1 uv run pytest tests/test_stack_integration.py -q
 ```
 
-The broker integration tests create and remove only their own containers and synthetic configuration. They do not contact Panama or operate an aircraft. The HTTP contract receiver is a test double; no production credentials are required.
+The broker integration tests create and remove only their own containers and synthetic configuration. They do not contact production services or operate an aircraft. The HTTP contract receiver is a test double; no production credentials are required.
 
 ## DJI API versions
 

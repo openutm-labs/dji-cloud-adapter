@@ -6,11 +6,11 @@ This guide is for the service administrator. Pilots only need the connection URL
 
 ## Hosting requirements
 
-Hosting is intentionally not selected yet. A small Docker-capable Linux VM is the simplest initial option because this service needs a continuously running MQTT connection, a persistent broker and a persistent SQLite volume. Do not deploy it as a stateless, request-only function.
+A Docker-capable Linux host is suitable because this service needs a continuously running MQTT connection, a persistent broker and a persistent SQLite volume. Do not deploy it as a stateless, request-only function.
 
 Provide:
 
-- A dedicated hostname with DNS pointing to the server, for example your chosen `cloud.<lab-domain>` address. Examples in this repository are placeholders, not deployed services.
+- A dedicated hostname with DNS pointing to the server, for example your chosen `cloud.example.org` address. Examples in this repository are placeholders, not deployed services.
 - Public TCP 80/443 for HTTPS certificate issuance and HTTPS/WSS access. UDP 443 is optional HTTP/3 support.
 - Outbound HTTPS access to Blender and its token issuer.
 - Persistent private storage, backups, disk monitoring and a synchronised server clock.
@@ -32,7 +32,7 @@ chmod 600 provisioning.local.json
 Edit `provisioning.local.json` privately:
 
 1. Set `public_url` to the actual dedicated HTTPS address, without a subpath.
-2. Set `workspace_name` to the lab name.
+2. Set `workspace_name` to the workspace display name.
 3. Set `dji.app_id`, `dji.app_key` and `dji.license` from the correct DJI **Cloud API** application. Licence verification occurs inside Pilot 2; having strings configured does not prove they are valid for this product/controller.
 4. Set `mqtt.public_url` to `wss://<your-hostname>/mqtt`. The default internal `mqtt` host and port are for the provided broker.
 5. Configure the confirmed Blender base URL and authentication. Use either `bearer_token` or the `oauth` object described in the [Blender contract](blender.md). Empty credentials prevent delivery and are shown as pending, rather than enabling anonymous uploads.
@@ -53,7 +53,7 @@ The CLI refuses to overwrite an existing output directory. It creates:
 | File | Purpose |
 |---|---|
 | `runtime/config.json` | Application settings and server-side credentials. |
-| `runtime/controller-codes.json` | Per-controller private hand-off codes; deliver each code only to the assigned coordinator/device. |
+| `runtime/controller-codes.json` | Per-controller private hand-off codes; deliver each code only to the assigned administrator/device. |
 | `runtime/broker/` | Broker passwords, ACLs and listener configuration. |
 | `runtime/compose.env` | Host user/group IDs and the chosen domain; contains no API credentials. |
 | `runtime/data/` | Persistent application database and WAL files. |
@@ -69,14 +69,14 @@ docker compose --env-file runtime/compose.env -f compose.yml -f compose.producti
 
 Caddy serves the connection page over HTTPS and proxies `/mqtt` to the broker WebSocket listener. The broker converts its private bootstrap password file to hashed passwords at startup. Bootstrap inputs remain secrets and must remain private.
 
-Use **one app process** per database. Do not increase Uvicorn workers or horizontally replicate this SQLite-backed service. Deploy separate lab instances initially.
+Use **one app process** per database. Do not increase Uvicorn workers or horizontally replicate this SQLite-backed service. Deploy separate organisation instances initially.
 
 ## 3. Verify before giving the link to pilots
 
 - The HTTPS page loads with a valid certificate on the actual controller.
 - `/healthz` returns 200 when the application/database can respond.
 - `/readyz` returns 200 only when MQTT subscription, forwarding loop and required credential fields are configured. This is a readiness check, **not a live licence/token/aircraft verification**.
-- Run `dji-cloud-adaptor check-blender --config /config/config.json` inside the app container to verify token acquisition and the protected Blender health GET without submitting traffic. See the [Panama authentication settings and access check](blender.md#panama-server-configuration). Keep TLS certificate verification enabled.
+- Run `dji-cloud-adaptor check-blender --config /config/config.json` inside the app container to verify token acquisition and the protected Blender health GET without submitting traffic. See the [server authentication settings and access check](blender.md#server-configuration). Keep TLS certificate verification enabled.
 - Anonymous requests cannot read `/api/pilot/bootstrap`, configuration, status or `/api/admin/status`.
 - The real Pilot 2 licence check and per-controller connection succeed.
 - A recent aircraft position reaches Blender and is verified downstream.
@@ -98,15 +98,13 @@ docker compose --env-file runtime/compose.env -f compose.yml -f compose.developm
 
 This exposes only loopback ports 18080 (web), 18884 (MQTT TCP) and 19001 (MQTT WebSocket). The development overlay mounts web assets for UI editing. A regular browser displays instructions and disables native connection; it cannot simulate a DJI aircraft.
 
-Do not point a development simulator at Panama's operational Blender. The automated tests use synthetic aircraft and a local HTTP receiver. Test-only plaintext URLs are restricted to loopback/known Docker development hosts.
+Do not point a development simulator at an operational Blender service. The automated tests use synthetic aircraft and a local HTTP receiver. Test-only plaintext URLs are restricted to loopback/known Docker development hosts.
 
-### Local adaptor with Panama authentication
+### Test and operational environments
 
-The local runtime may hold Panama's real OAuth configuration while public hosting is pending. This does not make the loopback controller address a production deployment. Keep ports bound to loopback, retain private file permissions, and do not publish simulated aircraft positions to Panama. Automated integration tests must continue to use their own synthetic configuration and local receiver.
+Use separate configurations, credentials and data for development and operational deployments. Keep local development ports bound to loopback and maintain private file permissions. Automated integration tests must use their own fictional configuration and local HTTP receiver.
 
-The current local runtime has the supplied DJI fields and Panama OAuth client configured, and authenticated reads verified. The local service now enables invitation-based self-onboarding for both enterprise models and starts without fictional or pre-registered devices. No operator invitation has been issued yet. Operators can register their exact pairing from Pilot 2 after receiving a private invitation. Before connecting real equipment, the service owner must prepare a controller-reachable HTTPS/WSS address with a trusted certificate. Do not hand out `localhost` to pilots or reuse a fictional device code as an operational setup.
-
-Before production hand-off, confirm the hostname, exact real equipment, persistent-storage/backup owner, monitoring/support owner, traffic classification and the separate pilot/declaration/reporting procedure. The production Compose stack already provides persistent storage, restart policies, a TLS proxy and internal broker ports; these still need acceptance on the chosen host and controller.
+Before connecting real equipment, prepare a controller-reachable HTTPS/WSS address with a trusted certificate. Do not give `localhost` to operators or distribute a fictional device code as an operational setup. Confirm the exact equipment, persistent-storage/backup owner, monitoring/support owner, traffic classification and separate pilot/declaration/reporting procedure. The production Compose stack supplies persistent storage, restart policies, a TLS proxy and internal broker ports; validate these on the selected host and controller.
 
 ## Operations, access changes and recovery
 
@@ -114,11 +112,11 @@ Before production hand-off, confirm the hostname, exact real equipment, persiste
 - Restart app and broker after editing the configuration or access grants. Run `uv run dji-cloud-adaptor render-broker --config runtime/config.json --output runtime/broker` before restarting when device assignments/passwords change.
 - To revoke a lost controller, remove its entry, regenerate broker files and restart **both app and broker**. The restart terminates existing MQTT connections; removing a password file entry alone does not necessarily disconnect an established client. Removed devices' queued samples are rejected rather than forwarded.
 - To replace a device's connection code, generate a fresh random code/hash and MQTT password through a newly prepared private configuration and securely deliver the replacement. Never reuse another controller's credentials. Session records bind to the connection-code hash and become invalid when it changes and the application reloads.
-- Do not rerun `init` over an existing lab directory or delete its database to solve an update. Preserve settings, traffic session IDs, pending samples and controller code assignments.
+- Do not rerun `init` over an existing deployment directory or delete its database to solve an update. Preserve settings, traffic session IDs, pending samples and controller code assignments.
 - On Blender downtime, the queue retries recent samples. Older ones become `expired` and remain locally until retention pruning; they must not be manually replayed into a live feed. Ask the Blender team for an agreed historical-ingestion path if historical recovery is needed.
-- Default retention is seven days; set `retention_days` under the lab's policy. Queue/database files contain location history and private identifiers. Protect backups accordingly. Stop the application for a filesystem backup, or use SQLite's backup API; do not copy only the database file while ignoring an active WAL.
+- Default retention is seven days; set `retention_days` under the organisation’s policy. Queue/database files contain location history and private identifiers. Protect backups accordingly. Stop the application for a filesystem backup, or use SQLite's backup API; do not copy only the database file while ignoring an active WAL.
 - HTTP delivery is at least once. A crash/lost response after remote acceptance can duplicate a sample downstream; use `source_event_id` for diagnosis and agree server idempotency if needed.
 
-## Still required for Panama
+## Deployment acceptance
 
 Hosting/domain selection, confirmed physical controller/aircraft/payload/firmware, Blender credentials and classification decisions, controller TLS/licence acceptance, and a supervised end-to-end check. No hosting purchase, DNS change or production deployment has been performed.

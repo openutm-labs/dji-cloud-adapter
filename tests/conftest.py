@@ -19,7 +19,7 @@ def settings():
             "public_url": "http://localhost:18080",
             "allow_insecure_development": True,
             "workspace_id": str(UUID(int=1)),
-            "workspace_name": "Test lab",
+            "workspace_name": "Test workspace",
             "admin_token": "test-admin-token-" * 3,
             "dji": {"app_id": "test-app", "app_key": "test-app-key", "license": "test-license"},
             "mqtt": {
