@@ -20,11 +20,16 @@ From a clean, reviewed commit:
 
 ```sh
 deploy/build-release.sh .integration-runtime/release-01
+# For an x86 host when building on an ARM workstation with emulation configured:
+# deploy/build-release.sh .integration-runtime/release-amd64 linux/amd64
 ```
 
 The script archives only Git-tracked source, builds from that archive with an OCI
 revision label, and saves `source.tar`, `image.tar` and `release.env` (commit, tag and
-image ID). Inspect the commit's CI first. The base Python, Mosquitto and Caddy images
+image ID and platform). The default platform is the Docker daemon's architecture;
+match it to the selected host, or explicitly select `linux/amd64`/`linux/arm64` using
+a builder with the required cross-build support. Never transfer an ARM-only image to
+an x86 host. Inspect the commit's CI first. The base Python, Mosquitto and Caddy images
 are digest-pinned; review and update their digests deliberately for patches. Runtime
 dependencies have hashes in `requirements.lock`. Build tooling can evolve; the saved
 image ID/digest is the immutable deployment artifact, not a promise of bit-identical
@@ -42,7 +47,7 @@ In the release source directory, export the saved commit-tagged `ADAPTOR_IMAGE` 
 prefer its registry `repository@sha256:...` after publishing the image):
 
 ```sh
-export ADAPTOR_IMAGE=dji-cloud-adaptor:REPLACE_WITH_FULL_REVIEWED_COMMIT
+export ADAPTOR_IMAGE=dji-cloud-adaptor:REPLACE_WITH_FULL_REVIEWED_COMMIT-amd64
 docker compose --env-file /srv/dji/runtime/compose.env \
   -f compose.yml -f compose.production.yml -f compose.release.yml \
   config --quiet
