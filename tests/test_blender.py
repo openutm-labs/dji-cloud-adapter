@@ -85,12 +85,13 @@ async def test_oauth_renews_once_after_401(settings, store, osd):
     assert store.status()["counts"] == {"accepted": 1}
 
 
-async def test_bad_auth_is_not_marked_as_delivered(settings, store, osd):
+@pytest.mark.parametrize("status", [401, 403, 503])
+async def test_bad_auth_is_not_marked_as_delivered(settings, store, osd, status):
     Ingestor(settings, store).process(TOPIC, json.dumps(osd).encode())
-    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(401))) as client:
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(status))) as client:
         await Forwarder(settings, store, BlenderClient(settings, client)).once()
     assert store.status()["counts"] == {"pending": 1}
-    assert store.status()["last_error"] == "blender_http_401"
+    assert store.status()["last_error"] == f"blender_http_{status}"
 
 
 async def test_invalid_schema_is_retained_for_diagnosis_not_retried_forever(settings, store, osd):

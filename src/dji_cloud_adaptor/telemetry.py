@@ -76,9 +76,16 @@ class Ingestor:
             "workspace_id": str(self.settings.workspace_id),
             "altitude_reference": "WGS84_ellipsoid",
             "timestamp_unit": "milliseconds",
+            "source_timestamp_ms": int(body["timestamp"]),
             "identifier_type": "opaque_dji_id_not_icao",
             "rid_compliance_asserted": False,
         }
+        if aircraft.simulation:
+            metadata.update(
+                source="dji_cloud_api_simulation",
+                simulation=True,
+                simulation_run_id=str(aircraft.simulation.run_id),
+            )
         for field, low, high in [
             ("elevation", -1000, 20000),
             ("horizontal_speed", 0, 200),
@@ -94,7 +101,11 @@ class Ingestor:
             "altitude_mm": height * 1000,
             "timestamp": int(body["timestamp"]),
             "icao_address": aircraft.address,
-            "traffic_source": self.settings.blender.traffic_source,
+            "traffic_source": (
+                aircraft.simulation.traffic_source
+                if aircraft.simulation
+                else self.settings.blender.traffic_source
+            ),
             "source_type": self.settings.blender.source_type,
             "metadata": metadata,
         }

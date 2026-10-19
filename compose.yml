@@ -7,8 +7,8 @@ services:
       ADAPTOR_CONFIG: /config/config.json
       ADAPTOR_DATABASE: /data/queue.sqlite3
     volumes:
-      - ./runtime/config.json:/config/config.json:ro
-      - ./runtime/data:/data
+      - ${ADAPTOR_RUNTIME:-./runtime}/config.json:/config/config.json:ro
+      - ${ADAPTOR_RUNTIME:-./runtime}/data:/data
     depends_on:
       mqtt:
         condition: service_started
@@ -24,12 +24,12 @@ services:
     logging:
       options: {max-size: 10m, max-file: "3"}
   mqtt:
-    image: eclipse-mosquitto:2.1.2-alpine
+    image: eclipse-mosquitto:2.1.2-alpine@sha256:38c0da4f2ef84284d47b3b3eeea1cb3bdeabe81ee10caf0cd5c5ff61ee3ea408
     restart: unless-stopped
     entrypoint: ["/bin/sh", "/bootstrap/entrypoint.sh"]
     volumes:
       - ./deploy/mosquitto-entrypoint.sh:/bootstrap/entrypoint.sh:ro
-      - ./runtime/broker:/bootstrap/config:ro
+      - ${ADAPTOR_RUNTIME:-./runtime}/broker:/bootstrap/config:ro
       - mqtt-data:/mosquitto/data
     logging:
       options: {max-size: 10m, max-file: "3"}

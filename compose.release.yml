@@ -1,0 +1,7 @@
+# Use after the base and production files. ADAPTOR_IMAGE must identify an image
+# built from the reviewed commit (prefer a registry digest after pushing it).
+services:
+  app:
+    image: ${ADAPTOR_IMAGE:?Set ADAPTOR_IMAGE to the immutable release image}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/readyz', timeout=3)"]

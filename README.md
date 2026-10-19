@@ -2,7 +2,7 @@
 
 Receive aircraft telemetry through **DJI Pilot 2 → your MQTT broker → Flight Blender**. Pilots keep using Pilot 2; they do not install an OpenUTM APK on the controller for this route.
 
-**Status: initial implementation, locally tested; real-controller and deployment acceptance remain required.** A standalone service for compatible DJI Pilot 2 equipment and a configurable Flight Blender deployment. Source: [openutm-labs/dji-cloud-adapter](https://github.com/openutm-labs/dji-cloud-adapter).
+**Status: simulated local HTTPS/WSS pipeline tested; hosted Blender reads verified. Real-target writes, public deployment and hardware acceptance remain incomplete.** A standalone service for compatible DJI Pilot 2 equipment and a configurable Flight Blender deployment. Source: [openutm-labs/dji-cloud-adapter](https://github.com/openutm-labs/dji-cloud-adapter).
 
 ```mermaid
 flowchart LR
@@ -21,6 +21,8 @@ flowchart LR
 - Service owners: [setup and hosting](docs/deployment.md).
 - Developers: [DJI protocol and design](docs/protocol.md) · [Blender contract](docs/blender.md).
 - Before operational use: [acceptance checklist and test evidence](docs/acceptance.md).
+- Without hardware: [bounded simulator and real-target procedure](docs/simulation.md).
+- Releases: [immutable images, monitoring, backup and rollback](docs/operations.md).
 
 ## Supported equipment
 
@@ -41,6 +43,7 @@ Check DJI's [Cloud API product support](https://developer.dji.com/doc/cloud-api-
 - Topology acknowledgement and aircraft OSD reception on exact allow-listed topics. Controller GPS, unknown aircraft, retained messages, stale timestamps and invalid coordinates are rejected.
 - Correct mapping of DJI `height` (WGS84 ellipsoid metres) to Blender `altitude_mm`; original source timestamps are preserved.
 - SQLite WAL outbox, local duplicate suppression, retries, OAuth renewal or a supplied bearer token, bounded live-delivery age and seven-day retention by default.
+- A separate bounded simulator with fictional identities, explicit simulation classification, correlated topology receipt and independent observation readback. Non-local writes require a documented reserved test context.
 - Controller status, protected administrator diagnostics, health/readiness endpoints, Docker deployment and automated tests.
 
 No flight-control, remote-stick, take-off, landing, mission-upload or firmware-update feature is implemented. The page loads only the API and telemetry modules. It does not activate media upload or livestreaming.

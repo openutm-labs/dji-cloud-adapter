@@ -2,6 +2,16 @@
 
 [Home](../README.md) · [Deployment](deployment.md) · [Protocol](protocol.md)
 
+## Software integration continuation, 19 October 2026
+
+See the [sanitised acceptance report](reports/2026-10-19-simulation.md) and
+[reproducible harness procedure](simulation.md). The local built-container pipeline
+now includes verified HTTPS/WSS, explicit simulation identity/classification, three
+independent observation readbacks and app/broker restarts. The receiver is local test
+infrastructure. Real hosted OAuth/protected reads pass, while synthetic writes await
+an agreed reserved context and operational-consumer filtering. No public deployment
+or hardware/licensing acceptance is claimed.
+
 ## Local verification, 19 October 2026
 
 The automated tests use fictional identifiers, synthetic telemetry and local receiver credentials. They do not contact production APIs or command an aircraft.

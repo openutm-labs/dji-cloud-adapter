@@ -19,8 +19,16 @@ The adapter generates a stable UUID traffic session per configured aircraft. It 
 | Configured aircraft | `icao_address` | Stable 24-character opaque `dji-...` ID; explicitly not an assigned ICAO address. |
 | `elevation`, speeds, heading, mode | `metadata` | Optional validated values; elevation is relative to take-off. |
 | Adapter metadata | `metadata` | Source, workspace UUID, aircraft alias/model, altitude reference, source event ID, no asserted RID compliance. |
+| Envelope `timestamp` | `metadata.source_timestamp_ms` | Original milliseconds retained for correlation when a read endpoint omits sensor time. |
 
 The project's resolved API reference defines `traffic_source=11` as Network Remote-ID and `source_type=0` as direct/true rather than fused data. These are configurable defaults, **not an assertion that DJI Cloud telemetry fulfils an ASTM RID service**. Confirm the desired classification and display handling with the Blender team before deployment.
+
+Configured simulation aircraft override this category using an explicitly allocated code 12–255,
+`source=dji_cloud_api_simulation`, `simulation=true`, a UUID run ID and an opaque `sim-dji-...` address.
+The normal category validation remains 0–11. Code 255 in local tests is not allocated for hosted services.
+The service owner must confirm its semantics and operational-consumer exclusion before any hosted run.
+See the [simulation isolation and readback procedure](simulation.md). A traffic session UUID alone
+does not provide tenant isolation in the reviewed implementation. These observations remain non-RID.
 
 ## Authentication
 

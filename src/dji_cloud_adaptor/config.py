@@ -15,17 +15,32 @@ class Model(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class Simulation(Model):
+    run_id: UUID
+    # Existing Blender categories 0..11 describe real surveillance sources.
+    # The service owner must allocate a separate code and exclude it from operations.
+    traffic_source: int = Field(ge=12, le=255)
+
+
 class Aircraft(Model):
     serial: str = Field(pattern=IDENTIFIER.pattern)
     name: str = Field(min_length=1, max_length=100)
     model: str = Field(min_length=1, max_length=100)
     session_id: UUID
+    simulation: Simulation | None = None
+
+    @model_validator(mode="after")
+    def simulation_identity(self):
+        if self.simulation and not (self.serial.startswith("SIM-") and self.name.startswith("SIMULATION ")):
+            raise ValueError("Simulation equipment must be explicitly named")
+        return self
 
     @property
     def address(self) -> str:
         # Blender calls the field icao_address, but this is an opaque aircraft ID,
         # not an assigned ICAO address. Keep it within the API's 24-character limit.
-        return "dji-" + hashlib.sha256(self.serial.encode()).hexdigest()[:20]
+        digest = hashlib.sha256(self.serial.encode()).hexdigest()
+        return "sim-dji-" + digest[:16] if self.simulation else "dji-" + digest[:20]
 
 
 class Device(Model):
@@ -176,6 +191,9 @@ class Settings(Model):
         for values in (identifiers, gateways, aircraft, sessions):
             if len(values) != len(set(values)):
                 raise ValueError("Device IDs, gateways, aircraft and session IDs must be unique")
+        for device in self.devices:
+            if any(a.simulation for a in device.aircraft) and not device.gateway_sn.startswith("SIM-"):
+                raise ValueError("Simulation controllers must use fictional SIM- identifiers")
         if set(gateways) & set(aircraft):
             raise ValueError("A controller cannot also be an aircraft")
         if self.mqtt.worker_username in {d.mqtt_username for d in self.devices}:

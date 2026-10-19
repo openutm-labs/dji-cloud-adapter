@@ -1,0 +1,52 @@
+{
+  "run_id": "15e325b2-38e5-429e-ba64-53b4318d3fd9",
+  "session_id": "07d67c3f-3d1d-562f-ae0f-df428423fe6e",
+  "aircraft_id": "sim-dji-f2a15393a6e4208a",
+  "simulation": true,
+  "traffic_source": 255,
+  "observations": [
+    {
+      "timestamp": 1792429736020,
+      "latitude": 1.25,
+      "longitude": -139.75,
+      "height": 123.456,
+      "elevation": 23.456,
+      "horizontal_speed": 2.5,
+      "vertical_speed": 0,
+      "mode_code": 0,
+      "verified": true,
+      "source_event_id": "d6cd6405fb0ae83fde8bff851c82be9894802e0665ca1a106c179888737da79c"
+    },
+    {
+      "timestamp": 1792429739041,
+      "latitude": 1.25001,
+      "longitude": -139.74999,
+      "height": 124.456,
+      "elevation": 24.456,
+      "horizontal_speed": 2.5,
+      "vertical_speed": 0,
+      "mode_code": 0,
+      "verified": true,
+      "source_event_id": "26650a15603a729f83669011d3b8e33e3b7b2fddd5d0e0ae63fb76cc6f7e9788"
+    },
+    {
+      "timestamp": 1792429742072,
+      "latitude": 1.25002,
+      "longitude": -139.74998,
+      "height": 125.456,
+      "elevation": 25.456,
+      "horizontal_speed": 2.5,
+      "vertical_speed": 0,
+      "mode_code": 0,
+      "verified": true,
+      "source_event_id": "68685368aae90b890c31fab59b8cf85791abdb08ed4c8aa2d027e483580e5e4c"
+    }
+  ],
+  "downstream_verified": true,
+  "target_kind": "local_contract_receiver",
+  "mqtt_transport": "wss",
+  "topology_acknowledged": true,
+  "local_oauth_token_exchange": "passed",
+  "broker_and_app_restart": "passed",
+  "outbox_event_ids_and_timestamps_match_readback": true
+}

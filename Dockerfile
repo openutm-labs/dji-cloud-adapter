@@ -1,4 +1,8 @@
-FROM python:3.12-slim
+FROM python:3.12-slim@sha256:02108f5d322dd89f1c9e552442c25acb0543dfdbc455693a5599624f20d9155d
+ARG VCS_REF=development
+LABEL org.opencontainers.image.source="https://github.com/openutm-labs/dji-cloud-adapter" \
+      org.opencontainers.image.revision=$VCS_REF \
+      org.opencontainers.image.licenses="Apache-2.0"
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY requirements.lock ./

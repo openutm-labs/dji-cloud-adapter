@@ -98,7 +98,7 @@ docker compose --env-file runtime/compose.env -f compose.yml -f compose.developm
 
 This exposes only loopback ports 18080 (web), 18884 (MQTT TCP) and 19001 (MQTT WebSocket). The development overlay mounts web assets for UI editing. A regular browser displays instructions and disables native connection; it cannot simulate a DJI aircraft.
 
-Do not point a development simulator at an operational Blender service. The automated tests use synthetic aircraft and a local HTTP receiver. Test-only plaintext URLs are restricted to loopback/known Docker development hosts.
+Automated tests use synthetic aircraft and a local HTTP receiver. A supervised test against a hosted Blender service requires the [simulation isolation procedure](simulation.md); a unique session ID is insufficient. Test-only plaintext URLs are restricted to loopback/known Docker development hosts.
 
 ### Test and operational environments
 
@@ -120,3 +120,8 @@ Before connecting real equipment, prepare a controller-reachable HTTPS/WSS addre
 ## Deployment acceptance
 
 Hosting/domain selection, confirmed physical controller/aircraft/payload/firmware, Blender credentials and classification decisions, controller TLS/licence acceptance, and a supervised end-to-end check. No hosting purchase, DNS change or production deployment has been performed.
+
+Use the [immutable release and operations guide](operations.md) for digest-pinned images,
+private runtime paths, readiness monitoring, paired app/broker backups and rollback.
+`ADAPTOR_RUNTIME` may point to a different absolute private directory; keep each
+deployment's Compose project stable so upgrades reuse its named volumes.
