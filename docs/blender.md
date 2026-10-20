@@ -2,11 +2,11 @@
 
 [Home](../README.md) · [Protocol](protocol.md) · [Acceptance](acceptance.md)
 
-## First-version endpoint
+## Default traffic endpoint
 
 `POST /flight_stream/set_air_traffic/{session_id}` with `Authorization: Bearer ...` and an `observations` array. Verify this contract against your deployment’s OpenAPI document at `<BLENDER_BASE_URL>/openapi.json`.
 
-The adapter generates a stable UUID traffic session per configured aircraft. It is not an automatically created or approved operation. We do not call declaration, approval or DSS-submission endpoints.
+The adapter generates a stable UUID traffic session per configured aircraft. It is not an automatically created or approved operation. With declarations disabled, this is the only telemetry write endpoint. The optional workflow below creates declarations separately; it never overrides approval or calls DSS submission directly.
 
 ## Mapping
 
@@ -82,7 +82,77 @@ Blender enqueues ingestion asynchronously. A successful response does not demons
 1. OAuth client ownership, permitted scopes, token endpoint, audience and renewal; verify protected reads and actual traffic writes during supervised acceptance.
 2. Traffic-source classification, height datum/units, source timestamp interpretation and opaque aircraft identifier handling.
 3. That asynchronous ingestion workers and the intended downstream display consume this traffic feed correctly.
-4. Whether operations need binding to declarations. If so, agree a pilot/aircraft/operation mapping and implement a separate authorised workflow; do not equate a generated traffic UUID to regulatory approval.
+4. If declarations are enabled, verify the declaration, state and operation-telemetry contracts below, scoped pilot roster, planning limits and downstream operation display. A traffic session UUID is not a declaration or flight approval.
 5. Historical data ingestion requirements, if any. This version intentionally does not import old flight logs into a live feed.
 
-No production declaration, telemetry or account was submitted as part of local automated testing.
+## Optional pilot declarations
+
+This feature is **disabled by default**. It adds a VLOS area plan to the hosted page inside Pilot 2. It does not read the Pilot 2 mission route or change aircraft controls. Use your organisation’s planning procedure for BVLOS, terrain-following or flights that need other volumes.
+
+Add `declarations` to private `runtime/config.json`, then restart the adapter. This illustrative block must be replaced with your operator, controller IDs, roster and approved limits:
+
+```json
+{
+  "declarations": {
+    "enabled": true,
+    "operator_id": "YOUR_OPERATOR_ID",
+    "originating_party": "YOUR_ORGANISATION",
+    "pilots": [
+      {"id": "pilot-01", "name": "Example Pilot", "device_ids": ["YOUR_DEVICE_ID"]}
+    ],
+    "max_radius_m": 500,
+    "max_height_m": 100,
+    "max_duration_minutes": 60,
+    "altitude_margin_m": 5,
+    "timestamp_accuracy_s": 1
+  }
+}
+```
+
+The numbers are examples, **not operating permissions**. Set limits and altitude margin for your accepted operation. Set `timestamp_accuracy_s` to a verified bound on the source clock error in seconds; reporting frequency is not clock accuracy. Do not enable the feature if that bound is unknown. Pilot IDs are stable internal references. `device_ids` explicitly assigns each pilot to controller IDs; there is no wildcard roster. Enrolled IDs are available from the administrator’s device list.
+
+Blender versions can omit operator identity from declaration list fields. The adapter also saves it in the declaration’s raw GeoJSON properties and sends it in operation telemetry. Verify that retained value during acceptance.
+
+The controller connection code grants device access. Selecting a pilot records a claimed responsibility; it does not authenticate that person. Use a controlled controller handover and roster procedure, or add personal authentication before using this for activities that require verified individual identity. Simulation aircraft cannot create declarations.
+
+### Plan and lifecycle
+
+1. On the ground at take-off, connect telemetry and select the assigned pilot and aircraft.
+2. Enter the area radius, maximum height above take-off, start time and duration. Confirm that the volume covers the intended flight and that operating checks are complete.
+3. Select **Review plan**. The adapter requires a source position no older than 10 seconds with take-off-relative elevation within 2 m. Review the saved coordinates, altitude range and time window.
+4. Select **Submit declaration**. Wait for Blender’s recorded state and approval. The adapter does not request or grant approval itself.
+5. Within the accepted, approved window, select **Activate declaration** when ready to fly. This changes the declaration state only.
+6. After landing, select **End declaration after landing**. New samples stop binding to that declaration. If samples are waiting, let the queue drain and select End again. Rejected or expired samples remain visible as gaps.
+
+The area is a 32-sided polygon that encloses the entered radius with 1 m of geometric padding around the ground position. DJI defines [height and elevation](https://developer.dji.com/doc/cloud-api-tutorial/en/api-reference/pilot-to-cloud/mqtt/aircraft/properties.html) relative to the ellipsoid and take-off respectively. The take-off WGS84 altitude is `height − elevation`; the declared range is take-off altitude minus the configured margin through take-off altitude plus planned height plus margin. Height above take-off is not height above varying terrain. Review the resulting volume using your organisation’s planning procedure.
+
+| Saved or Blender state | Available action |
+|---|---|
+| Draft | Submit once or discard. An expired draft must be discarded and reviewed again. |
+| Not submitted to network (0) | Check status or withdraw. |
+| Accepted (1), approved | Activate within its time window, or cancel before activation. |
+| Activated (2), nonconforming (3), contingent (4) | End after landing; investigate any abnormal state under the operating procedure. |
+| Ended (5), withdrawn (6), cancelled (7), rejected (8) | Record the result; a new flight requires a new plan. |
+| Submission unconfirmed | Check status to reconcile the saved reference. No second creation POST is sent. |
+
+### Blender contract and recovery
+
+| Request | Purpose |
+|---|---|
+| `POST /flight_declaration_ops/set_flight_declaration` | Create once. Includes aircraft, operator, pilot, VLOS type, time window, geometry and a unique client reference. No approval or state override is sent. |
+| `GET /flight_declaration_ops/flight_declaration/{id}` | Verify saved geometry, submitting pilot, organisation, times, state and approval. |
+| `GET /flight_declaration_ops/flight_declaration` | Reconcile an uncertain submission using date filters and numbered pages. Requires `count`, `results` and retained `flight_declaration_raw_geojson`. Scan is bounded to 2,000 records; an incomplete scan stays unresolved. |
+| `PUT /flight_declaration_ops/flight_declaration_state/{id}` | Activate, end, withdraw or cancel an owned declaration after reading its actual state. Verify the result by GET. |
+| `PUT /flight_stream/set_telemetry` | Send operation observations with `flight_details.id` equal to the actual declaration UUID. Requires HTTP 201. |
+
+State changes use read–write–read checks. Blender’s state endpoint does not provide an atomic compare-and-set contract; coordinate changes with other clients.
+
+The SQLite record is saved before a creation request. A timeout, invalid response or interrupted process leaves submission unconfirmed. **Check status** searches for the same embedded reference and exact plan. A missing match does not prove that creation failed. Contact the service administrator if it remains unresolved; do not edit the database, discard it or create a replacement to bypass this check. Resolve the upstream record and preserve the audit trail before any recovery change.
+
+Association is captured when each source sample enters the outbox, after a confirmed active state and within the declared window. Background checks refresh known declarations every 10 seconds; if status has not been verified for 30 seconds, new samples use the ordinary traffic route. Earlier queued samples are never relabelled. Bound samples use only their saved declaration, and the forwarder checks its state again before delivery. Samples outside an active declaration continue through the default traffic endpoint; they are not declaration telemetry.
+
+Operation telemetry uses measured position, WGS84 altitude, take-off-relative elevation when present, source timestamp and horizontal speed when present. Position and speed accuracies remain unknown. Aircraft yaw is not ground track; track and vertical speed remain unknown using Blender’s sentinel values. Operator location and regulatory identifiers are not invented. This mapping does not assert ASTM RID compliance. The declaration panel shows its own acceptance, pending and gap counts, separate from general traffic status.
+
+Back up the existing SQLite volume before upgrading. Startup adds an operation table and nullable sample association; old queued traffic remains unbound. Keep operation records and backups private: they contain pilot names, aircraft IDs and flight locations. Operation history is retained until an administrator applies an approved retention procedure; normal sample pruning still applies. To disable, finish active declarations and drain their queues first, then set `enabled` to `false` and restart. Any remaining bound samples are rejected, never converted into unrelated traffic.
+
+Local automated tests use synthetic equipment and local contract receivers. They do not submit to a deployed Blender instance. Before rollout, complete the [optional declaration acceptance checks](acceptance.md#optional-declaration-workflow) against your release, exact Blender API and real controller.

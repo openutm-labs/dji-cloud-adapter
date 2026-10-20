@@ -145,6 +145,7 @@ function portal({
       },
     };
   vm.createContext(context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "../src/dji_cloud_adaptor/web/declarations.js"), "utf8"), context);
   vm.runInContext(source, context);
   return {
     node,

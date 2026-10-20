@@ -59,9 +59,21 @@ If the code is lost, contact the administrator for recovery. Do not register the
 
 **Not configured**, **Not recent**, **Waiting** and **Status unavailable** need correction. **API accepted** alone does not prove storage of a full track. The check is complete when the coordinator finds current data from the correct aircraft. Do not start motors or take off for this check; use the lab's normal ground and GPS procedure.
 
+## Declare a flight when enabled
+
+If **Flight declaration** is available, your administrator has enabled the area-planning workflow. Keep the aircraft on the ground at take-off.
+
+1. Select your name and the connected aircraft. Enter the area radius, maximum height above take-off, start time and duration.
+2. Confirm that the plan covers the flight and your operating checks are complete. Select **Review plan** and check the saved position, altitude range and time.
+3. Select **Submit declaration** once. If submission is unconfirmed, use **Check status** or contact the administrator. Do not create another plan to recover a lost response.
+4. Wait for **Accepted** and recorded approval. Within the flight window, select **Activate declaration** when ready to fly.
+5. After landing, select **End declaration after landing**. If samples are waiting, let them drain and select End again. Record any rejected or expired samples with the coordinator.
+
+This declares a VLOS circle around take-off. It does not import your Pilot 2 mission or measure terrain clearance. Your selected name is a responsibility record, not personal sign-in. Approval in Blender does not replace required flight permissions. Follow the organisation’s procedure if this planner does not cover your flight.
+
 ## Use and close the connection
 
-Keep Pilot 2 as the flight application. Do not enable cloud flight-control authority. This connection does not create declarations, grant flight permission or upload photographs.
+Keep Pilot 2 as the flight application. Do not enable cloud flight-control authority. Use the declaration panel only if your administrator enabled it. The connection does not grant flight permission or upload photographs.
 
 Internet loss can leave gaps that the service cannot recover. Obey the lab's connection-loss procedure. Do not change flight-control applications during flight.
 

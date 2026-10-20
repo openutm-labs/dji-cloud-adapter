@@ -59,9 +59,21 @@ Si pierde el código, contacte con el administrador para recuperarlo. No registr
 
 **Sin configurar**, **Sin datos recientes**, **En espera** y **Estado no disponible** necesitan corrección. **API: aceptado** no demuestra que se haya conservado toda la trayectoria. La comprobación termina cuando el coordinador encuentra datos recientes de la aeronave correcta. No arranque motores ni despegue para comprobar la conexión; use el procedimiento normal en tierra y de recepción GPS.
 
+## Declarar un vuelo cuando esté habilitado
+
+Si aparece **Declaración de vuelo**, el administrador habilitó la planificación del área. Mantenga la aeronave en tierra en el punto de despegue.
+
+1. Seleccione su nombre y la aeronave conectada. Introduzca el radio del área, la altura máxima sobre el despegue, el inicio y la duración.
+2. Confirme que el plan cubre el vuelo y que completó las comprobaciones operativas. Pulse **Revisar plan** y compruebe posición, rango de altitud y horario guardados.
+3. Pulse **Enviar declaración** una vez. Si el envío no está confirmado, use **Consultar estado** o contacte al administrador. No cree otro plan para recuperar una respuesta perdida.
+4. Espere **Aceptada** y la aprobación registrada. Dentro del horario, pulse **Activar declaración** cuando esté listo para volar.
+5. Tras aterrizar, pulse **Finalizar declaración tras aterrizar**. Si quedan muestras en espera, deje que se envíen y pulse Finalizar otra vez. Registre las muestras rechazadas o vencidas con el coordinador.
+
+Se declara un círculo VLOS alrededor del despegue. No se importa la misión de Pilot 2 ni se mide la distancia al terreno. Su nombre registra responsabilidad, no es un inicio de sesión personal. La aprobación en Blender no sustituye los permisos requeridos. Siga el procedimiento de la organización si este planificador no cubre su vuelo.
+
 ## Usar y cerrar la conexión
 
-Mantenga Pilot 2 como aplicación de vuelo. No active autoridad de control de vuelo en nube. Esta conexión no crea declaraciones, concede permisos ni sube fotografías.
+Mantenga Pilot 2 como aplicación de vuelo. No active autoridad de control de vuelo en nube. Use el panel de declaración solo si está habilitado. La conexión no concede permisos ni sube fotografías.
 
 La pérdida de internet puede dejar huecos irrecuperables. Siga el procedimiento del laboratorio para pérdida de conexión. No cambie de aplicación de control durante el vuelo.
 

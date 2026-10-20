@@ -25,7 +25,7 @@ jobs:
       - run: uv run ruff check src tests
       - run: uv run ruff format --check src tests
       - run: uv run pytest -q
-      - run: node --test tests/portal.test.cjs
+      - run: node --test tests/*.test.cjs
       - name: Check runtime dependency export
         run: |
           uv export --no-dev --no-emit-project --format requirements-txt --output-file requirements.lock > /dev/null
@@ -36,4 +36,4 @@ jobs:
         env:
           RUN_MQTT_INTEGRATION: '1'
           RUN_STACK_INTEGRATION: '1'
-        run: uv run pytest tests/test_mqtt_integration.py tests/test_stack_integration.py tests/test_enrollment.py tests/test_simulator.py tests/test_simulation_stack.py -q
+        run: uv run pytest tests/test_mqtt_integration.py tests/test_stack_integration.py tests/test_declaration_stack.py tests/test_enrollment.py tests/test_simulator.py tests/test_simulation_stack.py -q

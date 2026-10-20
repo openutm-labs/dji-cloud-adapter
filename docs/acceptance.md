@@ -30,6 +30,18 @@ Use the organization's approved ground procedure. Do not start motors or take of
 
 A green status or HTTP response alone does not prove storage of a full track. Complete the organization's operational acceptance and reporting process before wider use.
 
+## Optional declaration workflow
+
+Complete these checks only when declarations are enabled. Use an isolated Blender environment for synthetic declarations and the approved procedure for any real flight.
+
+1. Confirm the operator, controller-specific pilot roster, planning limits, altitude margin and source-clock accuracy bound. Verify the API contracts in the [Blender guide](blender.md#optional-pilot-declarations).
+2. On the actual controller, review a ground plan and compare coordinates, WGS84 altitude range and local/UTC times with the intended flight volume.
+3. Submit once. Independently verify the declaration’s aircraft, submitting pilot, operator and volume in Blender. Confirm that unapproved and out-of-window activation are refused.
+4. Exercise a lost submission response and page reopen in isolation. Recover the same declaration without a second creation POST. Check controller and roster isolation.
+5. Activate through the accepted workflow and verify operation-linked telemetry downstream. General traffic API acceptance must not count as declaration telemetry acceptance.
+6. Exercise accepted ground interruptions and an adapter restart. Original timestamps and declaration association must survive. Expired or rejected observations must show as gaps.
+7. After landing, end the declaration, drain its queue and verify the final Blender state. Check the next flight receives a distinct declaration and no previous samples.
+
 ## Recovery and records
 
 Use the [operations guide](operations.md) to verify host reboot, alerts, consistent app/broker backups and restoration. Keep credentials, serial inventories, flight records and acceptance reports outside this repository.

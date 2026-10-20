@@ -115,7 +115,7 @@ input {
   padding: 14px;
   background: #fafcfc;
 }
-#aircraft-model {
+#aircraft-model, #declaration-pilot, #declaration-aircraft {
   display: block;
   width: 100%;
   font: inherit;
@@ -355,3 +355,11 @@ footer {
     padding: 16px 0;
   }
 }
+
+.plan-summary { white-space: pre-line; overflow-wrap: anywhere; line-height: 1.8; }
+.card label.confirmation { display: flex; align-items: flex-start; gap: 12px; margin: 20px 0; font-weight: 400; }
+.confirmation input { width: 22px; height: 22px; flex-shrink: 0; margin: 2px 0 0; }
+.declaration-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.declaration-actions button { margin-top: 8px; }
+
+#declaration-card { margin-top: 18px; }

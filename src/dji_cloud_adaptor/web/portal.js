@@ -50,7 +50,7 @@ const text = {
     accepted: "Last API acceptance",
     pending: "Waiting to send",
     disconnect: "Disconnect this controller",
-    note: "Telemetry connection only. Your pilot, flight permissions and operating checks remain part of your organisation’s normal procedure. No flight-control access is requested.",
+    note: "Your pilot, flight permissions and operating checks remain part of your organisation’s normal procedure. No flight-control access is requested.",
     help: "Need help? Contact the administrator who gave you this link.",
     connecting: "Connecting…",
     connected: "Connected",
@@ -136,7 +136,7 @@ const text = {
     accepted: "Última aceptación de la API",
     pending: "Pendientes de envío",
     disconnect: "Desconectar este controlador",
-    note: "Solo conexión de telemetría. La identidad del piloto, los permisos y las revisiones siguen el procedimiento de la organización. No se solicita acceso al control de vuelo.",
+    note: "La identidad del piloto, los permisos y las revisiones siguen el procedimiento de la organización. No se solicita acceso al control de vuelo.",
     help: "¿Necesita ayuda? Contacte con el administrador que le dio este enlace.",
     connecting: "Conectando…",
     connected: "Conectado",
@@ -198,6 +198,7 @@ function translate() {
     node.textContent = t(node.dataset.text);
   });
   if (currentStatus) renderStatus(currentStatus);
+  declarations.translate();
 }
 function native(method, ...args) {
   if (!bridge || typeof bridge[method] !== "function")
@@ -323,6 +324,7 @@ async function poll() {
     if (bridge) window.onDjiCloudConnection(native("thingGetConnectState"));
     currentStatus = await api("/api/pilot/status");
     renderStatus(currentStatus);
+    await declarations.poll();
   } catch (error) {
     if (error.status === 401) {
       await disconnect(false);
@@ -335,6 +337,7 @@ async function poll() {
   }
 }
 function showConnection(config) {
+  declarations.connect(config);
   el("device-name").textContent = config.device_name;
   el("workspace-name").textContent = config.workspace_name;
   el("connect-card").hidden = true;
@@ -365,6 +368,7 @@ function configure(config) {
   showConnection(config);
 }
 async function disconnect(revoke = true) {
+  declarations.clear();
   if (timer) clearInterval(timer);
   timer = null;
   if (bridge) {
@@ -451,6 +455,11 @@ async function resume() {
     await disconnect();
   }
 }
+const declarations = window.PilotDeclarations({
+  api, language: () => language, aircraftSerial: () => {
+    try { return native("platformGetAircraftSN"); } catch { return ""; }
+  },
+});
 translate();
 el("browser-notice").hidden = Boolean(bridge);
 el("connect").disabled = !bridge;

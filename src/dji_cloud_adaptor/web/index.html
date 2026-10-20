@@ -6,6 +6,7 @@
     <meta name="color-scheme" content="light" />
     <title>OpenUTM · Connect your controller</title>
     <link rel="stylesheet" href="/static/style.css" />
+    <script src="/static/declarations.js" defer></script>
     <script src="/static/portal.js" defer></script>
   </head>
   <body>
@@ -139,10 +140,48 @@
             Disconnect this controller
           </button>
         </section>
+        <section id="declaration-card" class="card" hidden>
+          <h2 data-declaration-text="title">Flight declaration</h2>
+          <p data-declaration-text="intro"></p>
+          <p id="declaration-limits" class="hint"></p>
+          <form id="declaration-form">
+            <label for="declaration-pilot" data-declaration-text="pilot">Pilot</label>
+            <select id="declaration-pilot" required></select>
+            <p class="hint" data-declaration-text="pilotInfo"></p>
+            <label for="declaration-aircraft" data-declaration-text="aircraft">Aircraft</label>
+            <select id="declaration-aircraft" required></select>
+            <label for="declaration-radius" data-declaration-text="radius"></label>
+            <input id="declaration-radius" type="number" min="10" step="1" required />
+            <label for="declaration-height" data-declaration-text="height"></label>
+            <input id="declaration-height" type="number" min="1" step="1" required />
+            <label for="declaration-start" data-declaration-text="start"></label>
+            <input id="declaration-start" type="datetime-local" required />
+            <label for="declaration-duration" data-declaration-text="duration"></label>
+            <input id="declaration-duration" type="number" min="1" step="1" required />
+            <label class="confirmation"><input id="declaration-ground" type="checkbox" required /><span data-declaration-text="ground"></span></label>
+            <button id="declaration-prepare" type="submit" data-declaration-text="prepare"></button>
+          </form>
+          <div id="declaration-review" hidden>
+            <h3 data-declaration-text="review"></h3>
+            <p id="declaration-summary" class="plan-summary"></p>
+            <p id="declaration-status" role="status" aria-live="polite"></p>
+            <p id="declaration-telemetry" class="hint"></p>
+          </div>
+          <p data-declaration-text="disclaimer" class="hint"></p>
+          <div class="declaration-actions">
+            <button id="declaration-submit" type="button" data-declaration-text="submit" hidden></button>
+            <button id="declaration-activate" type="button" data-declaration-text="activate" hidden></button>
+            <button id="declaration-finish" type="button" data-declaration-text="finish" hidden></button>
+            <button id="declaration-cancel" type="button" class="secondary" data-declaration-text="cancel" hidden></button>
+            <button id="declaration-discard" type="button" class="secondary" data-declaration-text="discard" hidden></button>
+            <button id="declaration-refresh" type="button" class="secondary" data-declaration-text="refresh"></button>
+          </div>
+          <p id="declaration-message" role="status" aria-live="polite"></p>
+        </section>
         <aside class="footnote">
           <span class="dot" aria-hidden="true"></span>
           <p data-text="note">
-            Telemetry connection only. Your pilot, flight permissions and
+            Your pilot, flight permissions and
             operating checks remain part of your organisation’s normal procedure. No
             flight-control access is requested.
           </p>
