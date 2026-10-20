@@ -336,7 +336,7 @@ class Operations:
                 raise ValueError()
             if approved not in (True, False, 0, 1):
                 raise ValueError()
-        except (ValueError, KeyError, TypeError):
+        except (ValueError, KeyError, TypeError, AttributeError):
             raise DeclarationError("declaration_response_invalid", 502) from None
         if op["remote_id"] and remote_id != op["remote_id"]:
             raise DeclarationError("declaration_response_invalid", 502)

@@ -53,7 +53,7 @@ class Blender:
             if self.fail_after_create:
                 raise httpx.ReadTimeout("synthetic lost response")
             if self.malformed:
-                return httpx.Response(200, json={"id": "invalid"})
+                return httpx.Response(200, json={"id": self.malformed})
             return httpx.Response(200, json={k: record[k] for k in ("id", "state", "is_approved")})
         if path.endswith("/flight_declaration"):
             self.page_calls.append(request.url)
@@ -236,12 +236,12 @@ def test_ground_reference_required(pilot, declarations, store, osd):
     assert pilot.post("/api/pilot/declarations", json=plan()).status_code == 409
 
 
-@pytest.mark.parametrize("mode", ["lost_response", "malformed_response", "not_sent"])
+@pytest.mark.parametrize("mode", ["lost_response", "malformed_response", "numeric_id", "not_sent"])
 def test_uncertain_creation_never_reposts(pilot, declarations, store, osd, upstream, mode):
     op = prepare(pilot, declarations, store, osd)
     upstream.fail_after_create = mode == "lost_response"
     upstream.fail_before_create = mode == "not_sent"
-    upstream.malformed = mode == "malformed_response"
+    upstream.malformed = 123 if mode == "numeric_id" else "invalid" if mode == "malformed_response" else False
     result = action(pilot, op, "submit").json()
     assert result["stage"] == "uncertain"
     result = action(pilot, op, "submit").json()
