@@ -2,7 +2,7 @@
 
 Send aircraft position and status from **DJI Pilot 2 to Flight Blender**. Pilots keep Pilot 2 as the flight application. No OpenUTM APK or personal OpenUTM signup is needed for this equipment connection.
 
-**Status:** the local simulated pipeline and hosted Blender reads have been tested. Public deployment, real-target writes and actual-controller acceptance remain pending. See [acceptance evidence](docs/acceptance.md).
+Keep organization URLs, rollout notes and deployment acceptance results in your own operations documentation. Repository examples use placeholders. Complete the [acceptance procedure](docs/acceptance.md) for your equipment and environment.
 
 ## What must be deployed
 
@@ -18,7 +18,7 @@ Deploy the complete Docker stack on a Linux host with persistent storage:
 | Mosquitto MQTT broker | Receives telemetry from Pilot 2. |
 | Adapter | Validates telemetry, queues recent samples and forwards them to Blender. |
 
-All three can run on one DigitalOcean Droplet. The production configuration exposes web access on ports 80/443. Pilot 2 uses `wss://<hostname>/mqtt`; broker and application ports stay internal. [Deployment procedure](docs/deployment.md)
+All three can run on one Linux VM. The production configuration exposes web access on ports 80/443. Pilot 2 uses `wss://<hostname>/mqtt`; broker and application ports stay internal. [Deployment procedure](docs/deployment.md)
 
 ## Choose your task
 

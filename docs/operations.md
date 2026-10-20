@@ -67,9 +67,7 @@ the admin token in command arguments or URLs. A healthy endpoint does not prove 
 validity, telemetry delivery, downstream persistence or hardware licensing. Run the
 read-only Blender check and bounded readback acceptance separately.
 
-The local tests cover pending-outbox recovery, persistent duplicate suppression,
-broker/app restarts, reconnection and device revocation. Real host reboot, DNS/public
-certificates and external alert delivery must be checked on the chosen host.
+Verify host reboot, public certificate trust, recovery and alert delivery on the chosen host. Keep the results in your deployment records.
 
 ## Configured devices and queue retention
 
@@ -133,9 +131,9 @@ host backup remains required; local container restarts alone do not establish it
 
 Retain the previous source package, image and consistent backup. Stop the app, select
 the previous immutable `ADAPTOR_IMAGE`, validate its config/database compatibility and
-run `up -d --no-build --no-deps app` under the same project/runtime. This release adds
-no database schema migration. Simulation config adds an aircraft `simulation` field
-that older releases do not accept: keep such deployments stopped or restore the
+run `up -d --no-build --no-deps app` under the same project/runtime. Check schema
+and configuration compatibility before selecting an older image. Older releases may
+not accept the aircraft `simulation` field: keep such deployments stopped or restore the
 compatible paired snapshot; do not strip simulation labels and forward their queue
 as real traffic. Restoring an older paired snapshot can lose newer registrations and
 revocations, so reconcile them before opening access. Preserve the failed state for
