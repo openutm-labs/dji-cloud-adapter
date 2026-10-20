@@ -2,7 +2,7 @@
 
 Send aircraft position and status from **DJI Pilot 2 to Flight Blender**. Pilots keep Pilot 2 as the flight application. No OpenUTM APK or personal OpenUTM signup is needed for this equipment connection.
 
-**Status:** the local simulated pipeline and hosted Blender reads have been tested. Public deployment, real-target writes and actual-controller acceptance remain pending. See [acceptance evidence](docs/acceptance.md).
+**Panama:** [connection service](https://dji-cloud-api.panama.openutm.net/) is online. Server checks passed on 20 October 2026. Follow the [Panama steps](docs/panama.md) for access and invitations. Actual-controller licensing, registration and telemetry acceptance remain pending. See [acceptance evidence](docs/acceptance.md).
 
 ## What must be deployed
 

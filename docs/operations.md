@@ -2,6 +2,8 @@
 
 [Deployment](deployment.md) · [Simulation](simulation.md) · [Acceptance](acceptance.md)
 
+**Panama:** use the [deployed `runtime/stack` wrapper](panama.md#maintain-the-deployment) for Compose operations. The release examples below assume a standalone Caddy deployment.
+
 ## Release package
 
 Complete the [hosting and private configuration](deployment.md) first. This procedure packages a reviewed commit and preserves its runtime across releases.

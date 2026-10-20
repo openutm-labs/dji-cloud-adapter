@@ -4,6 +4,8 @@
 
 For the service administrator. **There is no admin web form for invitations.** Run the commands below on the deployed service, or ask its hosting team to run them.
 
+**Panama admins:** use the [deployed invitation command](panama.md#issue-an-invitation). Its `runtime/stack` wrapper selects the host-specific proxy configuration.
+
 ## Understand the two codes
 
 | Code | Purpose | Lifetime |

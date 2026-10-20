@@ -4,6 +4,8 @@
 
 This procedure sends aircraft telemetry to OpenUTM while Pilot 2 stays the flight application. Your administrator must accept the service and equipment for the intended activity. A browser preview does not establish a connection.
 
+**Panama connection address:** [https://dji-cloud-api.panama.openutm.net/](https://dji-cloud-api.panama.openutm.net/). Open it inside Pilot 2. Get the private invitation or saved connection code from your coordinator.
+
 ## Before you start
 
 Get the HTTPS connection address and a private invitation or existing controller connection code from your administrator. Use the accepted aircraft, controller, firmware and payload. The controller needs internet.

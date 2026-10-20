@@ -2,6 +2,8 @@
 
 [Home](../README.md) · [Admin tasks](self-onboarding.md) · [Operations](operations.md) · [Acceptance](acceptance.md)
 
+**Panama is already deployed:** use the [Panama service steps](panama.md), including its existing-proxy wrapper. The procedure below is for a new service.
+
 For the hosting and Blender teams. Deploy the full stack: **Caddy, Mosquitto and the adapter**. A Docker-capable Linux VM with persistent disk is suitable. A DigitalOcean Droplet is one option. Use one application process per SQLite database.
 
 ## Agree the deployment inputs

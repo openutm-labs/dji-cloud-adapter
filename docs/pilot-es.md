@@ -4,6 +4,8 @@
 
 Este procedimiento envía telemetría a OpenUTM y mantiene Pilot 2 como aplicación de vuelo. El administrador debe aceptar el servicio y el equipo para la actividad prevista. Una vista previa en navegador no establece conexión.
 
+**Dirección de conexión de Panamá:** [https://dji-cloud-api.panama.openutm.net/](https://dji-cloud-api.panama.openutm.net/). Ábrala dentro de Pilot 2. Obtenga la invitación privada o el código guardado del coordinador.
+
 ## Antes de empezar
 
 Obtenga del administrador la dirección HTTPS y una invitación privada o el código existente del controlador. Use aeronave, controlador, firmware y carga útil aceptados. El controlador necesita internet.

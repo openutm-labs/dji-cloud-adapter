@@ -2,6 +2,12 @@
 
 [Home](../README.md) · [Deployment](deployment.md) · [Protocol](protocol.md)
 
+## Panama deployment, 20 October 2026
+
+The [Panama service](panama.md) passed public HTTPS/page, health/readiness, authenticated WSS broker and Blender OAuth/protected-read checks. Private pilot/admin endpoints returned 401 without credentials. No telemetry was sent to Blender during these checks.
+
+Actual-controller licensing, registration, aircraft traffic writes and downstream reception remain pending. The local evidence below describes earlier tests.
+
 ## Software integration continuation, 19 October 2026
 
 See the [sanitised acceptance report](reports/2026-10-19-simulation.md) and
@@ -9,8 +15,8 @@ See the [sanitised acceptance report](reports/2026-10-19-simulation.md) and
 now includes verified HTTPS/WSS, explicit simulation identity/classification, three
 independent observation readbacks and app/broker restarts. The receiver is local test
 infrastructure. Real hosted OAuth/protected reads pass, while synthetic writes await
-an agreed reserved context and operational-consumer filtering. No public deployment
-or hardware/licensing acceptance is claimed.
+an agreed reserved context and operational-consumer filtering. That local run did not establish public deployment
+or hardware/licensing acceptance. See the Panama update above for later server checks.
 
 ## Local verification, 19 October 2026
 
