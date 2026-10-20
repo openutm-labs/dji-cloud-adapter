@@ -1,92 +1,89 @@
-# Connect your DJI controller to OpenUTM
+# Connect DJI Pilot 2 to OpenUTM
 
 [Español](pilot-es.md) · [Project home](../README.md)
 
-**This connection is awaiting real-controller acceptance and hosting.** Your administrator must confirm it is ready before issuing the final link. A website preview alone does not connect an aircraft.
+This procedure sends aircraft telemetry to OpenUTM while Pilot 2 stays the flight application. Your administrator must accept the service and equipment for the intended activity. A browser preview does not establish a connection.
 
-## Before you begin
+## Before you start
 
-You need:
+Get the HTTPS connection address and a private invitation or existing controller connection code from your administrator. Use the accepted aircraft, controller, firmware and payload. The controller needs internet.
 
-- An approved aircraft and controller running **DJI Pilot 2**. Confirm the supported pairing, firmware and payload with your administrator.
-- Working internet on the controller.
-- The **controller connection website address** from your administrator.
-- A private **invitation code** for first-time registration, or an existing **connection code assigned to this controller**.
+No OpenUTM APK or personal OpenUTM signup is necessary. Equipment codes do not identify the pilot. The lab's identity, planning and flight-permission procedures apply separately.
 
-You do not need an APK, developer account or command-line tool for this route. Your connection code is not your account password and does not identify the human pilot. Continue the organisation’s normal pilot sign-in, planning and permission steps separately.
+## Open the connection page
 
-## 1. Open the connection page
+1. Keep the aircraft on the ground and connected to its controller.
+2. Open **DJI Pilot 2 → Cloud Service → Open Platforms**.
+3. Enter the supplied HTTPS address.
+4. Make sure that the address is correct and no certificate warning shows.
+5. Select **English** or **Español**.
 
-1. Follow the organisation’s normal ground setup with the aircraft safely on the ground.
-2. Open DJI Pilot 2.
-3. On its home page, open **Cloud Service → Open Platforms**. Labels can vary by Pilot version; ask your administrator if the menu differs.
-4. Enter the exact HTTPS website address supplied for your organisation.
-5. Check the organisation’s expected website address and that there is no certificate warning. If the address or certificate is wrong, stop and ask the administrator.
-6. Choose **English** or **Español** at the top of the page.
+If the address, certificate or menu is different, stop and contact the administrator. **Open this page in DJI Pilot 2** means the page is in a regular browser. Return to **Open Platforms**.
 
-If the page says **Open this page in DJI Pilot 2**, it is running in a regular browser. Return to Pilot 2 and open it from **Open Platforms**.
+## Register or reconnect
 
-## First time: register your own controller
+Complete only the applicable branch, then examine the connection statuses.
 
-If your administrator supplied a **invitation code** instead of an existing connection code:
+### First connection: use an invitation
 
-1. Keep the supported aircraft on the ground, powered on and linked to its controller. You do not need to send serial numbers in advance.
-2. Open the connection page inside Pilot 2 as described above, then select **First time here? Register this controller**.
-3. Enter the private invitation in **Invitation code**. It is different from your account password and from a saved device connection code.
-4. Select **Mavic 3 Enterprise** or **Matrice 400**, matching your actual aircraft. Optionally enter a controller nickname.
-5. Tap **Register and connect →**. The page verifies the DJI licence and reads both equipment IDs from Pilot 2. No manual serial entry is required.
-6. Keep the new private **connection code**. Use **Show code** only when you are ready to save it privately; do not include it in screenshots. Use this code, rather than the invitation, when reconnecting later.
-7. Continue with the three status checks below. Registration does not authorise flight or create a declaration.
+1. Select **First time here? Register this controller**.
+2. Enter the private **Invitation code**.
+3. Select **Mavic 3 Enterprise** or **Matrice 400** to agree with your aircraft.
+4. Select **Register and connect →**.
+5. Use **Show code** to keep the generated **connection code** in the lab's private location.
 
-Each invitation is time-limited and registers one controller/aircraft pair. If an operator has both supported combinations, use a separate invitation for each. If the button is missing, the organisation may not have enabled self-registration; ask the administrator for the correct route.
+Pilot 2 reads the serial numbers automatically. A controller nickname is optional. Each invitation expires and registers one controller–aircraft pair. Another pair needs another invitation. Keep codes out of screenshots.
 
-If Pilot 2 cannot read the aircraft ID, check that the approved aircraft is powered and linked on the ground. If **Registration is saved** appears, keep this page open and tap **Register and connect** again; do not change equipment or try different identities. An already registered device needs its saved connection code or administrator-assisted recovery.
+![Registration page with empty fields](images/self-onboarding-en.png)
 
-![First-time registration](images/self-onboarding-en.png)
+*Browser preview. Registration is disabled outside Pilot 2; no real codes or equipment IDs are shown.*
 
-*Local browser preview with empty fields; registration is disabled outside Pilot 2. No real invitation or equipment IDs are shown.*
+### Later connections: use the saved code
 
-## 2. Already registered: enter your controller's code
+1. Enter this controller's saved **Connection code**.
+2. Select **Connect telemetry →**.
+3. Wait for license verification and connection.
 
-1. Enter the private code in **Connection code**.
-2. Tap **Connect telemetry →**.
-3. Wait while Pilot 2 verifies the application licence and connects.
+If the code is lost, contact the administrator for recovery. Do not register the same equipment again.
 
-Do not share the code or take a screenshot with it visible. If the page says the code belongs to another controller, ask for the correct code; do not select another pilot or aircraft to work around it.
+## Examine the connection statuses
 
-## 3. Check the three statuses
-
-| Status | What to check |
+| Indication | Expected result |
 |---|---|
-| **Controller connection** | **Connected** means Pilot 2 reports a connection to the telemetry broker. |
-| **Aircraft telemetry** | **Connected** means the adapter has received a recent position from a registered aircraft. |
-| **Flight Blender** | **API accepted** means Blender's API accepted a recent sample. The organisation must also verify its downstream record/dashboard. |
+| **Controller connection** | **Connected**: Pilot 2 reports a broker connection. |
+| **Aircraft telemetry** | **Connected**: the adapter received a current aircraft position. |
+| **Flight Blender** | **API accepted**: the API accepted a current sample. |
 
-Check **Last aircraft sample**, **Last API acceptance** and **Waiting to send**. **Not configured**, **Not recent**, **Waiting** or **Status unavailable** need review; they do not mean everything is ready.
+1. Examine **Last aircraft sample**, **Last API acceptance** and **Waiting to send** for current data or delayed delivery.
+2. Tell the coordinator to examine the received data in Blender or the available dashboard.
 
-You do not need to take off or start motors to test connection. A usable aircraft position may depend on the normal ground setup and GPS reception. Follow the administrator's ground-check instructions.
+**Not configured**, **Not recent**, **Waiting** and **Status unavailable** need correction. **API accepted** alone does not prove storage of a full track. The check is complete when the coordinator finds current data from the correct aircraft. Do not start motors or take off for this check; use the lab's normal ground and GPS procedure.
 
-## 4. Continue the organisation’s normal operating procedure
+## Use and close the connection
 
-This connection shares telemetry only. It does not create a flight declaration, approve a flight, choose a pilot or upload photographs. Your administrator must explain the separate planning, identity and permission workflow before an operation.
+Keep Pilot 2 as the flight application. Do not enable cloud flight-control authority. This connection does not create declarations, grant flight permission or upload photographs.
 
-Pilot 2 remains the flight application. This adapter does not ask for remote control, and the page must not ask you to enable cloud flight-control authority. Resolve any unexpected prompt with the administrator.
+Internet loss can leave gaps that the service cannot recover. Obey the lab's connection-loss procedure. Do not change flight-control applications during flight.
 
-Keep the controller connected to internet when the organisation requires live tracking. Internet loss can interrupt the transmitted track; this service does not guarantee later recovery of positions the controller never sent.
+1. With the aircraft on the ground, complete the lab's shutdown procedure.
+2. Examine the last sample time and pending data with the coordinator.
+3. Record missing data or unresolved faults.
+4. Select **Disconnect this controller**.
 
-## If something goes wrong
+Keep manufacturer logs and photographs under the lab's reporting procedure. Closing the page does not revoke equipment access; report a lost controller to the administrator.
 
-| Problem | What to do |
+## Correct a fault
+
+| Indication | Action |
 |---|---|
-| No Open Platforms option | Confirm the exact controller, Pilot 2 version and approved combination with the administrator. |
-| Application licence cannot be verified | Ask the administrator to check the DJI application setup and controller version. Reinstalling an APK is not part of this connection. |
-| Invalid code or wrong controller | Check the complete assigned code; request a corrected one if necessary. |
-| Too many attempts | Wait one minute, then retry. Ask the administrator if unsure which code to use. |
-| Controller connects but aircraft telemetry waits | Check aircraft power/link, registered pairing and normal GPS setup while on the ground. |
-| Blender is not configured or sending remains pending | Ask the administrator to check the server's API credentials/service status. Do not change aircraft dates or recreate operations to fix this. |
-| Session ended | Enter the controller's code again. This is separate from your personal account. |
-| Internet or status disappears | Treat live tracking as interrupted and follow the organisation’s procedure. Do not change flight-control apps during a flight. |
+| Missing registration button or different menu | Get the correct access instructions from the administrator. |
+| License failure | Tell the administrator to examine DJI application credentials and controller compatibility. |
+| No aircraft ID or telemetry | Examine aircraft power, controller connection, registered pair and GPS on the ground. |
+| Expired invitation | Get a replacement if registration has not completed. |
+| **Registration is saved** | Keep the page open and retry **Register and connect** with the same equipment. |
+| Already registered, lost code or wrong controller | Get recovery or the correct code. Do not change identities. |
+| Too many attempts | Wait one minute before you try again. |
+| Session ended | Reconnect with this controller's saved code. |
+| Blender pending or not configured | Contact the administrator. Do not change dates or recreate operations. |
 
-Report the failed step, exact message, controller/aircraft models, Pilot version and time/time zone through the organisation’s approved private support channel. Never send your connection code, passwords or setup credentials.
-
-To end this cloud connection while safely on the ground, use **Disconnect this controller**. For a lost/shared controller, ask the administrator to handle access revocation; closing a browser page alone does not revoke its MQTT credentials.
+Report the step, exact message, equipment models, Pilot version, time and time zone through the lab's private support channel. Exclude connection codes, passwords and credentials.

@@ -4,17 +4,7 @@
 
 ## Release package
 
-Use a Docker-capable Linux VM with persistent disk, not request-only hosting. A small
-2 GiB / 1 vCPU VM is a starting size for a supervised low-volume deployment; monitor
-actual utilisation before scaling. For reference, [DigitalOcean's published Basic
-pricing](https://www.digitalocean.com/pricing/droplets) listed 2 GiB, 1 vCPU and 50 GiB
-disk at **US$12/month** on 19 October 2026, excluding domain, backups, taxes and overage.
-Its [VM setup guide](https://docs.digitalocean.com/products/droplets/getting-started/recommended-droplet-setup/)
-supports the required Linux host model. This is a recommendation, not a purchased host.
-
-Provider account, host and domain allocation require the service owner's decision.
-Existing unrelated cloud resources are not automatically available for this service.
-No purchase, DNS change or public deployment is implied by a local container test.
+Complete the [hosting and private configuration](deployment.md) first. This procedure packages a reviewed commit and preserves its runtime across releases.
 
 From a clean, reviewed commit:
 
@@ -81,8 +71,17 @@ The local tests cover pending-outbox recovery, persistent duplicate suppression,
 broker/app restarts, reconnection and device revocation. Real host reboot, DNS/public
 certificates and external alert delivery must be checked on the chosen host.
 
+## Configured devices and queue retention
+
+For devices listed directly in `config.json`, remove retired entries, run `dji-cloud-adaptor render-broker --config runtime/config.json --output runtime/broker`, then restart both app and broker. Existing MQTT connections must terminate before removal is complete. Use the deployment's actual paths. Invitation-enrolled devices use the [admin commands](self-onboarding.md#recover-or-remove-access) instead.
+
+For a configured device's credential change, prepare a fresh code/hash and MQTT password privately. Preserve its traffic session IDs and pending data. Do not regenerate an entire runtime to replace one code.
+
+`max_sample_age_seconds` defaults to 60 seconds. Older queued positions expire from live delivery; do not change their timestamps or replay them as current traffic. `retention_days` defaults to seven days for local records. Agree a separate historical-ingestion path with Blender if necessary.
+
 ## Consistent backup
 
+Backups contain location history, device codes and MQTT credentials.
 Keep backups private/encrypted, outside the runtime directory, and record the full
 release commit, image ID, runtime path and Compose project name. Back up app and broker
 together; the broker's live dynamic-security file is authoritative after enrollment.

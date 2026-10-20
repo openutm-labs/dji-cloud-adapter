@@ -1,89 +1,121 @@
-# Invite operators to register their own equipment
+# Register equipment and manage access
 
-[Home](../README.md) · [Hosting](deployment.md) · [English pilot steps](pilot-en.md) · [Pasos del piloto en español](pilot-es.md)
+[Home](../README.md) · [Deployment](deployment.md) · [Operations](operations.md)
 
-This route is for **Mavic 3 Enterprise + RC Pro Enterprise** and **Matrice 400 + RC Plus 2 Enterprise Enhanced**, running an approved Pilot 2/firmware/payload combination. The administrator can issue an invitation without knowing serial numbers or possessing the equipment. The operator completes setup later on the actual controller.
+For the service administrator. **There is no admin web form for invitations.** Run the commands below on the deployed service, or ask its hosting team to run them.
 
-The invitation authorises one equipment registration. It is not account sign-in, proof of pilot identity, hardware attestation or flight approval. The operator selects the aircraft model; Pilot 2 supplies the controller and connected aircraft serials. The server checks identity consistency and uniqueness, not manufacturer-signed ownership. Continue the organisation’s pilot, equipment acceptance and operating-permission checks separately.
+## Understand the two codes
 
-## Operator journey
+| Code | Purpose | Lifetime |
+|---|---|---|
+| Invitation code | Registers one controller with one aircraft. | Administrator selects 1–168 hours; default 72 hours. |
+| Connection code | Reconnects that registered equipment. | Retained until access is revoked or credentials change. |
 
-1. Receive the organisation’s hosted HTTPS address and a private, unexpired **invitation code**. Each controller/aircraft pair needs its own invitation. An operator with both equipment combinations uses two invitations.
-2. With the aircraft on the ground, power on and link the approved equipment. Open the address in **Pilot 2 → Cloud Service → Open Platforms**.
-3. Select **First time here? Register this controller** / **¿Primera vez? Registre este controlador**.
-4. Enter the invitation, select the exact aircraft model and optionally give the controller a useful nickname. Do not enter account passwords or developer credentials.
-5. Select **Register and connect →** / **Registrar y conectar →**. The page verifies the DJI licence, reads both serials and registers the pairing. Operators do not need to type or send serials in advance.
-6. Save the new **connection code** privately. It belongs to this controller and replaces the invitation for later connections. It is hidden until **Show code / Mostrar código**; do not photograph it or share it with another controller.
-7. Check controller connection, aircraft telemetry and Blender acceptance as described in the pilot guide. Registration alone does not prove any of those connections or operational approval.
+Neither code is a personal account or proof of pilot identity. Serial numbers are read from Pilot 2 during registration. The administrator does not need the equipment or serial numbers in advance.
 
-No APK, command line or access to GitHub is needed on the controller. The service must be hosted at an address the controller can reach; a localhost browser preview cannot register real equipment. Registration is limited to the supported equipment combinations; it does not add compatibility to other aircraft or controllers. Keep server-side Blender credentials private.
+Registration supports **Mavic 3 Enterprise + RC Pro Enterprise** and **Matrice 400 + RC Plus 2 Enterprise Enhanced**, subject to acceptance of the exact firmware and payload.
 
-## Service owner: enable once
+## Enable enrollment
 
-For a new service, copy `config.self-onboarding.example.json` to a private `*.local.json` file and complete the public HTTPS/WSS addresses, DJI application fields and Blender OAuth fields using the deployment guide. Keep `devices: []` when no equipment has registered. `init` generates the private broker provisioner credential automatically when `enrollment.enabled` is true.
+For a new service, complete the [deployment procedure](deployment.md). It uses `config.self-onboarding.example.json`, with `enrollment.enabled: true` and `devices: []`. Provisioning generates the broker's private enrollment credential.
 
-```sh
-uv run dji-cloud-adaptor init --input provisioning.local.json --output runtime
-uv run dji-cloud-adaptor check --config runtime/config.json
-```
+For an existing service:
 
-For an existing installation, back up the private configuration, SQLite database and broker volume before migration. Add `enrollment.enabled: true` and a separate random broker provisioner password of at least 32 characters to private `mqtt.provisioner_password`. Keep existing real device entries and secrets. Regenerate the broker bootstrap with `render-broker`, then recreate the broker and app in a supervised maintenance window. Do not replace a live runtime or delete its broker volume to migrate.
+1. Back up its [application and broker state together](operations.md#consistent-backup).
+2. Add `enrollment.enabled: true` and a random `mqtt.provisioner_password` of at least 32 characters to its private configuration.
+3. Keep existing device entries and secrets.
+4. Regenerate the broker bootstrap with `render-broker` and recreate app/broker in a maintenance window.
 
-Enrollment uses Mosquitto's dynamic-security plugin, included in the supplied broker image. The private initial JSON is copied into the broker's persistent data volume only on first bootstrap. Subsequent broker restarts keep that authoritative live state. Do not replace it with an old bootstrap after operators have registered. See [Mosquitto dynamic security](https://mosquitto.org/documentation/dynamic-security/) and its [2.1.2 control protocol](https://github.com/eclipse-mosquitto/mosquitto/blob/v2.1.2/plugins/dynamic-security/README.md).
+Preserve the broker volume. Its live dynamic-security state is authoritative after registration; do not replace it with an old bootstrap. The service provisions new equipment without restarting other pilots' connections.
 
-The service generates exact per-device topic permissions and refreshes the worker's subscriptions during registration; it does not restart other pilots' connections. Only the separate server-side provisioner can access the broker-control topic. Pilot and telemetry-worker roles cannot publish aircraft commands or broker-control messages. The worker has access only to registered aircraft/status topics.
+<a id="administrator-issue-invitations"></a>
 
-## Administrator: issue invitations
+## Generate an invitation
 
-On the service host, with access to its private runtime:
+The examples use `runtime/compose.env`. Use the deployed service's actual env file and Compose project. Commands run inside its app container, where `/config` is read-only and `/data` is persistent.
 
 ```sh
-uv run dji-cloud-adaptor issue-invitation \
-  --config runtime/config.json \
-  --database runtime/data/queue.sqlite3 \
-  --label "Operator setup" --hours 72 \
-  --output runtime/invitations/operator-01.json
+docker compose --env-file runtime/compose.env \
+  -f compose.yml -f compose.production.yml \
+  exec -T app dji-cloud-adaptor issue-invitation \
+  --config /config/config.json --database /data/queue.sqlite3 \
+  --label "Equipment setup 01" --hours 72 \
+  --output /data/invitations/equipment-01.json
 ```
 
-Use a fresh filename per invitation. The file is created with mode 0600; the command does not print the code. Send the correct environment's HTTPS address and its invitation code through the organisation’s approved private channel. No serial inventory is required. Each invitation lasts up to seven days and registers one controller with one aircraft; issue it when the operator is ready. Do not create invitations just to distribute them publicly or include them in documentation, screenshots or URLs.
+The command saves a private JSON file with `url`, `invitation_code` and `expires_at`. It does not print the code. The file uses mode 0600. Use a fresh output filename for each invitation.
 
-Inside Docker, use the same CLI with `--config /config/config.json` and `--database /data/queue.sqlite3`; choose an output under `/data/` because the config mount is read-only. Treat that output as a secret and transfer it privately. Do not publish invitation files as shared downloads.
-
-## Retry, recovery and revocation
-
-- **No aircraft ID:** keep the aircraft on the ground, powered and linked. The bridge must expose both serials; there is no manual-ID bypass on the operator page. Confirm the Pilot 2 version if it still fails.
-- **Licence failure:** no equipment registration occurs; ask the service owner to verify the DJI application and hardware compatibility.
-- **Service temporarily unavailable:** the reserved registration is durable. Keep the page open and retry **Register and connect**. The same invitation can resume a pending reservation until expiry, but cannot register different equipment.
-- **Equipment already registered:** use its existing connection code. Do not register it under a different serial, model or identity. Support must verify ownership before recovery or reassignment.
-- **Invitation expired/used:** a completed registration uses its saved device code. For unused invitations, request a replacement through the administrator.
-- **Lost connection code:** an authorised administrator can use the protected admin status to find the device ID and recover its code to a private file:
+An authorized administrator can retrieve it privately with:
 
 ```sh
-uv run dji-cloud-adaptor export-device-code --device DEVICE_ID \
-  --database runtime/data/queue.sqlite3 --output runtime/recovery/device.json
+umask 077
+docker compose --env-file runtime/compose.env \
+  -f compose.yml -f compose.production.yml \
+  cp app:/data/invitations/equipment-01.json ./equipment-01.local.json
+chmod 600 equipment-01.local.json
 ```
 
-Revoke a lost/retired registered device:
+Open that private file. Send the **URL and invitation code** through the lab's private channel, with the expiry time. Do not put the code in a URL, screenshot or shared document. Issue a separate invitation for each pair, when the participant is ready.
+
+## What the pilot does
+
+1. Keeps the accepted aircraft on the ground and connected to its controller.
+2. Opens the supplied URL in **Pilot 2 → Cloud Service → Open Platforms**.
+3. Selects **First time here? Register this controller** and enters the invitation.
+4. Selects the aircraft model and **Register and connect →**.
+5. Keeps the generated connection code privately for later connections.
+6. Completes the reception check with the coordinator.
+
+No APK, personal OpenUTM signup or GitHub access is necessary. Give the complete [English](pilot-en.md) or [Spanish](pilot-es.md) procedure. Registration alone does not establish flight permission or data reception.
+
+## Recover or remove access
+
+Use the same deployment env/project as above. Replace `DEVICE_ID` with the enrolled ID from protected `/api/admin/status`. That endpoint needs the server's admin bearer token; keep it out of URLs and command arguments.
+
+**Recover a lost connection code:**
 
 ```sh
-docker compose --env-file runtime/compose.env -f compose.yml -f compose.production.yml \
-  exec -T app dji-cloud-adaptor revoke-device --device DEVICE_ID \
-  --config /config/config.json --database /data/queue.sqlite3
+docker compose --env-file runtime/compose.env \
+  -f compose.yml -f compose.production.yml \
+  exec -T app dji-cloud-adaptor export-device-code \
+  --device DEVICE_ID --database /data/queue.sqlite3 \
+  --output /data/recovery/device-01.json
 ```
 
-Use `compose.development.yml` for the local stack. The command runs inside the app container so it can reach the internal broker hostname. This records revocation before disabling the broker client. API logins/sessions reject the revoked device immediately; the running service refreshes the registered fleet within five seconds and retries broker reconciliation after outages. Do not tell an operator that closing a web page revokes MQTT credentials. Replacing an aircraft/controller pairing currently needs administrator-assisted reassignment; an invitation cannot overwrite an existing registration.
+Verify the recipient before delivering the recovered code. Retrieve the file privately using the same `cp` method as an invitation.
 
-Cancel an unused invitation from its private hand-off file:
+**Revoke a lost or retired enrolled device:**
 
 ```sh
-uv run dji-cloud-adaptor revoke-invitation \
-  --database runtime/data/queue.sqlite3 --invitation-file runtime/invitations/operator-01.json
+docker compose --env-file runtime/compose.env \
+  -f compose.yml -f compose.production.yml \
+  exec -T app dji-cloud-adaptor revoke-device \
+  --device DEVICE_ID --config /config/config.json --database /data/queue.sqlite3
 ```
 
-Cancelling an invitation does not by itself revoke an already registered device; use `revoke-device` too when required.
+Revocation blocks application sessions immediately. The running service refreshes its fleet within five seconds and retries broker reconciliation after outages. Closing the pilot page alone does not remove broker access.
 
-## Backups and acceptance
+**Cancel an unused invitation:**
 
-Back up the app's SQLite database (including a consistent WAL snapshot), its private runtime configuration and the broker's persistent dynamic-security data together. The database contains device connection codes/MQTT passwords as well as registration records and therefore must remain private. Invitation codes and temporary enrollment-session tokens are stored as hashes. Restore must preserve both registry and broker state; practise restore before operational use. Use one app process per SQLite database.
+```sh
+docker compose --env-file runtime/compose.env \
+  -f compose.yml -f compose.production.yml \
+  exec -T app dji-cloud-adaptor revoke-invitation \
+  --database /data/queue.sqlite3 \
+  --invitation-file /data/invitations/equipment-01.json
+```
 
-Local tests cover invitation expiry, replay, duplicate equipment, both models, failed provisioning/retry, persistence, revocation, exact broker permissions and registration from an empty fleet without a restart. Portal tests cover automatic IDs, missing aircraft, licence failure, safe retry and connection-code recovery after native connection failure. They use fictional devices and local receivers. Actual controllers, DJI licence/TLS trust, hosted registration and real Blender ingestion remain acceptance requirements.
+Canceling an invitation does not revoke a registered device. Use `revoke-device` for that case.
+
+## Resolve registration faults
+
+| Condition | Action |
+|---|---|
+| Invitation expired before registration | Issue a replacement invitation. |
+| Equipment already registered | Recover its connection code. An invitation cannot overwrite the pair. |
+| Missing aircraft ID | Check power and controller connection on the ground. There is no manual-ID bypass. |
+| License failure | Check DJI application credentials and actual-controller compatibility. |
+| **Registration is saved** | Keep the pilot page open and retry **Register and connect**. Keep the same equipment and identity. |
+| Replacement aircraft or controller | Arrange administrator-assisted reassignment. Do not invent another identity. |
+
+For pre-provisioned devices in `config.json`, access changes require configuration/broker regeneration and app/broker restart; the enrolled-device commands above manage invitation registrations. Preserve pending data and back up the registry and broker together. See [operations](operations.md) and [protocol details](protocol.md#onboarding-handshake).
