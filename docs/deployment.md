@@ -1,127 +1,108 @@
-# Configure and host the adapter
+# Deploy the adapter
 
-[Home](../README.md) · [Pilot guide](pilot-en.md) · [Acceptance](acceptance.md)
+[Home](../README.md) · [Admin tasks](self-onboarding.md) · [Operations](operations.md) · [Acceptance](acceptance.md)
 
-This guide is for the service administrator. Pilots only need the connection URL and their controller's private code.
+For the hosting and Blender teams. Deploy the full stack: **Caddy, Mosquitto and the adapter**. A Docker-capable Linux VM with persistent disk is suitable. A DigitalOcean Droplet is one option. Use one application process per SQLite database.
 
-## Hosting requirements
+## Agree the deployment inputs
 
-A Docker-capable Linux host is suitable because this service needs a continuously running MQTT connection, a persistent broker and a persistent SQLite volume. Do not deploy it as a stateless, request-only function.
+| Input | Owner to identify |
+|---|---|
+| Host, dedicated DNS name, backups and monitoring | Hosting team |
+| DJI Cloud API application ID, key and license | DJI application owner |
+| Blender URL, OAuth client, scopes and traffic classification | Blender team |
+| Accepted equipment, ground check and permitted activity | Equipment / operations lead |
+| Invitations, recovery and support contact | Onboarding administrator |
 
-Provide:
+The DJI license must match this Cloud API product and pass on the actual controller. Configured credentials alone do not establish acceptance.
 
-- A dedicated hostname with DNS pointing to the server, for example your chosen `cloud.example.org` address. Examples in this repository are placeholders, not deployed services.
-- Public TCP 80/443 for HTTPS certificate issuance and HTTPS/WSS access. UDP 443 is optional HTTP/3 support.
-- Outbound HTTPS access to Blender and its token issuer.
-- Persistent private storage, backups, disk monitoring and a synchronised server clock.
-- A trusted TLS certificate chain accepted by the actual controller firmware. Caddy automates certificate issuance; acceptance on Pilot 2 still needs testing. Do not work around a certificate warning by disabling verification.
-- Docker Engine/Compose. Python 3.12+ and uv are used by the provisioning CLI on the administrator's workstation/server.
+For a small assisted trial, 2 GiB RAM / 1 vCPU is a starting size; monitor actual usage. Configure:
 
-The supplied production Compose overlay exposes only Caddy. MQTT TCP, broker WebSocket and application ports remain internal. If that host already has a reverse proxy, adapt the routing with its administrator rather than binding a second proxy to occupied ports.
+- DNS pointing to the host and a trusted public TLS certificate.
+- Public TCP 80/443 and restricted SSH. UDP 443 is optional.
+- Outbound HTTPS to Blender and its token issuer, plus DNS and certificate issuance access.
+- Persistent private storage and a synchronized clock.
+- Docker Engine/Compose, Python 3.12+ and uv for provisioning.
 
-## 1. Prepare the private configuration
+Pilot 2 connects through `wss://<hostname>/mqtt`. The supplied Caddy proxy routes this to Mosquitto internally. Do not expose broker ports 1883/9001 or application port 8080 publicly. If the host already has a proxy, agree equivalent HTTPS/WebSocket routing with its owner.
 
-From the repository directory:
+## 1. Prepare a new service
+
+Run as a dedicated non-root service owner, from the reviewed repository checkout:
 
 ```sh
 uv sync --frozen
-cp config.example.json provisioning.local.json
+cp config.self-onboarding.example.json provisioning.local.json
 chmod 600 provisioning.local.json
 ```
 
-Edit `provisioning.local.json` privately:
+Complete the private input file:
 
-1. Set `public_url` to the actual dedicated HTTPS address, without a subpath.
-2. Set `workspace_name` to the workspace display name.
-3. Set `dji.app_id`, `dji.app_key` and `dji.license` from the correct DJI **Cloud API** application. Licence verification occurs inside Pilot 2; having strings configured does not prove they are valid for this product/controller.
-4. Set `mqtt.public_url` to `wss://<your-hostname>/mqtt`. The default internal `mqtt` host and port are for the provided broker.
-5. Configure the confirmed Blender base URL and authentication. Use either `bearer_token` or the `oauth` object described in the [Blender contract](blender.md). Empty credentials prevent delivery and are shown as pending, rather than enabling anonymous uploads.
-6. Choose [invitation-based self-onboarding](self-onboarding.md) to start with `devices: []` and let operators register their own equipment later, or replace the fictional controller/aircraft entries with exact physical serial numbers, aliases and model names for pre-provisioned devices. Add one device entry per controller. An aircraft cannot be assigned to two controllers in the same configuration.
-7. Keep `allow_insecure_development` absent/false in production. Optional policy fields and their limits are defined in `config.py`.
+| Setting | Value |
+|---|---|
+| `public_url` | Actual HTTPS address, without a subpath. |
+| `workspace_name` | Lab or organization name. |
+| `dji.app_id`, `dji.app_key`, `dji.license` | Correct DJI Cloud API application values. |
+| `mqtt.public_url` | `wss://<hostname>/mqtt`. Keep internal broker host `mqtt`. |
+| `blender` | Confirmed base URL and OAuth settings from the [Blender contract](blender.md#server-configuration). Agree source classification. |
+| `enrollment.enabled` / `devices` | `true` / `[]` for invitation-based registration. |
+| `allow_insecure_development` | Absent or `false`. |
 
-Do not commit this input, actual serial-number inventories, private connection codes or runtime files. They are excluded by Git and Docker ignore rules.
-
-Generate private configuration and broker grants:
+Keep credentials and runtime files private. For fixed, pre-provisioned equipment, use `config.example.json` instead and replace its fictional device entries with the actual pairs.
 
 ```sh
 uv run dji-cloud-adaptor init --input provisioning.local.json --output runtime
 uv run dji-cloud-adaptor check --config runtime/config.json
 ```
 
-The CLI refuses to overwrite an existing output directory. It creates:
+`init` creates private configuration, broker grants, `compose.env` and a data directory. It refuses an existing output directory. **Do not rerun it over a live service.** Existing installations use the [enrollment migration](self-onboarding.md#enable-enrollment) and [backup procedure](operations.md#consistent-backup).
 
-| File | Purpose |
-|---|---|
-| `runtime/config.json` | Application settings and server-side credentials. |
-| `runtime/controller-codes.json` | Per-controller private hand-off codes; deliver each code only to the assigned administrator/device. |
-| `runtime/broker/` | Broker passwords, ACLs and listener configuration. |
-| `runtime/compose.env` | Host user/group IDs and the chosen domain; contains no API credentials. |
-| `runtime/data/` | Persistent application database and WAL files. |
+## 2. Start the stack
 
-Files are created with mode 0600 and private directories with mode 0700. Use a dedicated non-root service owner on a Linux server. Compose runs the app with that owner's numeric user/group so it can read the private configuration and write its own data.
-
-## 2. Start the production services
+For initial setup, build and start the reviewed source:
 
 ```sh
-docker compose --env-file runtime/compose.env -f compose.yml -f compose.production.yml up -d --build
-docker compose --env-file runtime/compose.env -f compose.yml -f compose.production.yml ps
+docker compose --env-file runtime/compose.env \
+  -f compose.yml -f compose.production.yml up -d --build
+docker compose --env-file runtime/compose.env \
+  -f compose.yml -f compose.production.yml ps
 ```
 
-Caddy serves the connection page over HTTPS and proxies `/mqtt` to the broker WebSocket listener. The broker converts its private bootstrap password file to hashed passwords at startup. Bootstrap inputs remain secrets and must remain private.
+For an operational release, use the [immutable-image procedure](operations.md#release-package), which adds `compose.release.yml` and records the deployed image. Match the image architecture to the host.
 
-Use **one app process** per database. Do not increase Uvicorn workers or horizontally replicate this SQLite-backed service. Deploy separate organisation instances initially.
+Keep the same Compose project name for this deployment. Record it with the runtime path. Set `COMPOSE_PROJECT_NAME` in its private Compose env if needed to keep the name stable across release directories. `ADAPTOR_RUNTIME` can select an absolute private runtime path; set `ADAPTOR_UID/GID` to its Linux owner. Private directories use mode 0700 and files 0600.
 
-## 3. Verify before giving the link to pilots
+## 3. Verify the service
 
-- The HTTPS page loads with a valid certificate on the actual controller.
-- `/healthz` returns 200 when the application/database can respond.
-- `/readyz` returns 200 only when MQTT subscription, forwarding loop and required credential fields are configured. This is a readiness check, **not a live licence/token/aircraft verification**.
-- Run `dji-cloud-adaptor check-blender --config /config/config.json` inside the app container to verify token acquisition and the protected Blender health GET without submitting traffic. See the [server authentication settings and access check](blender.md#server-configuration). Keep TLS certificate verification enabled.
-- Anonymous requests cannot read `/api/pilot/bootstrap`, configuration, status or `/api/admin/status`.
-- The real Pilot 2 licence check and per-controller connection succeed.
-- A recent aircraft position reaches Blender and is verified downstream.
+1. Make sure that HTTPS and `/mqtt` use the correct hostname and trusted certificates.
+2. Make sure that `/healthz` and `/readyz` return 200.
+3. Run the read-only Blender access check:
 
-Then complete the [acceptance checklist](acceptance.md). Share the [English](pilot-en.md) or [Spanish](pilot-es.md) guide, HTTPS address and the device's code privately. Never share the admin token or Blender credentials with pilots.
+```sh
+docker compose --env-file runtime/compose.env \
+  -f compose.yml -f compose.production.yml \
+  exec -T app dji-cloud-adaptor check-blender --config /config/config.json
+```
+
+4. Make sure that anonymous requests cannot read pilot bootstrap, private status or admin diagnostics.
+5. Configure readiness, disk and backup alerts with a named owner.
+6. Arrange the [actual-controller acceptance check](acceptance.md#required-on-each-real-equipment-combination).
+
+Use the actual deployment's env file and Compose project for service commands. Readiness and a protected GET do not prove traffic writes, DJI licensing or downstream storage. Keep TLS verification enabled. Synthetic writes require an [isolated test context](simulation.md#establish-isolation-before-a-real-write).
+
+## 4. Hand over for an assisted ground check
+
+Give the onboarding administrator the HTTPS address, deployed commit/image, service owner and outstanding acceptance items. Arrange access to the [invitation command](self-onboarding.md#generate-an-invitation); there is no admin web form for it.
+
+Issue one private invitation per controller–aircraft pair when the participant is ready. Share the pilot guide in [English](pilot-en.md) or [Spanish](pilot-es.md). Complete the supervised reception check before accepting the setup. Keep personal identity, declarations and operating permissions in the lab's separate procedure.
 
 ## Local development
 
-Use a **separate** private input/configuration for development:
-
-- `public_url`: `http://localhost:18080`
-- `mqtt.public_url`: `ws://localhost:19001/mqtt`
-- `allow_insecure_development`: `true`
-- Keep the broker's internal host as `mqtt` when running the application in Compose.
+Use separate configuration, credentials and data. Set `public_url` to `http://localhost:18080`, `mqtt.public_url` to `ws://localhost:19001/mqtt`, and `allow_insecure_development` to `true`.
 
 ```sh
-docker compose --env-file runtime/compose.env -f compose.yml -f compose.development.yml up -d --build
+docker compose --env-file runtime/compose.env \
+  -f compose.yml -f compose.development.yml up -d --build
 ```
 
-This exposes only loopback ports 18080 (web), 18884 (MQTT TCP) and 19001 (MQTT WebSocket). The development overlay mounts web assets for UI editing. A regular browser displays instructions and disables native connection; it cannot simulate a DJI aircraft.
-
-Automated tests use synthetic aircraft and a local HTTP receiver. A supervised test against a hosted Blender service requires the [simulation isolation procedure](simulation.md); a unique session ID is insufficient. Test-only plaintext URLs are restricted to loopback/known Docker development hosts.
-
-### Test and operational environments
-
-Use separate configurations, credentials and data for development and operational deployments. Keep local development ports bound to loopback and maintain private file permissions. Automated integration tests must use their own fictional configuration and local HTTP receiver.
-
-Before connecting real equipment, prepare a controller-reachable HTTPS/WSS address with a trusted certificate. Do not give `localhost` to operators or distribute a fictional device code as an operational setup. Confirm the exact equipment, persistent-storage/backup owner, monitoring/support owner, traffic classification and separate pilot/declaration/reporting procedure. The production Compose stack supplies persistent storage, restart policies, a TLS proxy and internal broker ports; validate these on the selected host and controller.
-
-## Operations, access changes and recovery
-
-- Monitor `/readyz`, broker availability, disk space and protected queue status. The `/api/admin/status` endpoint requires the private `admin_token` as a bearer token. Do not put it in a URL or publish its response.
-- Restart app and broker after editing the configuration or access grants. Run `uv run dji-cloud-adaptor render-broker --config runtime/config.json --output runtime/broker` before restarting when device assignments/passwords change.
-- To revoke a lost controller, remove its entry, regenerate broker files and restart **both app and broker**. The restart terminates existing MQTT connections; removing a password file entry alone does not necessarily disconnect an established client. Removed devices' queued samples are rejected rather than forwarded.
-- To replace a device's connection code, generate a fresh random code/hash and MQTT password through a newly prepared private configuration and securely deliver the replacement. Never reuse another controller's credentials. Session records bind to the connection-code hash and become invalid when it changes and the application reloads.
-- Do not rerun `init` over an existing deployment directory or delete its database to solve an update. Preserve settings, traffic session IDs, pending samples and controller code assignments.
-- On Blender downtime, the queue retries recent samples. Older ones become `expired` and remain locally until retention pruning; they must not be manually replayed into a live feed. Ask the Blender team for an agreed historical-ingestion path if historical recovery is needed.
-- Default retention is seven days; set `retention_days` under the organisation’s policy. Queue/database files contain location history and private identifiers. Protect backups accordingly. Stop the application for a filesystem backup, or use SQLite's backup API; do not copy only the database file while ignoring an active WAL.
-- HTTP delivery is at least once. A crash/lost response after remote acceptance can duplicate a sample downstream; use `source_event_id` for diagnosis and agree server idempotency if needed.
-
-## Deployment acceptance
-
-Hosting/domain selection, confirmed physical controller/aircraft/payload/firmware, Blender credentials and classification decisions, controller TLS/licence acceptance, and a supervised end-to-end check. No hosting purchase, DNS change or production deployment has been performed.
-
-Use the [immutable release and operations guide](operations.md) for digest-pinned images,
-private runtime paths, readiness monitoring, paired app/broker backups and rollback.
-`ADAPTOR_RUNTIME` may point to a different absolute private directory; keep each
-deployment's Compose project stable so upgrades reuse its named volumes.
+Only loopback ports 18080, 18884 and 19001 are exposed. A browser preview cannot connect an aircraft. Use [operations](operations.md) for backups and upgrades, [admin tasks](self-onboarding.md) for access changes, and the [protocol reference](protocol.md#validation-and-delivery) for queue and delivery behavior.
