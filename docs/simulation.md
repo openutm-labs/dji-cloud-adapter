@@ -7,23 +7,6 @@ verify a DJI licence, certify a model/firmware combination, or establish flight 
 It is never started by Compose or the application. Broker authentication and production
 payload validation remain enabled.
 
-## Simulator investigation
-
-Reviewed [YuYongJu/dji-cloud-simulator](https://github.com/YuYongJu/dji-cloud-simulator/tree/2db9ea4c9b25878c41fa5a30c42aec903e89f1a6)
-at **`2db9ea4c9b25878c41fa5a30c42aec903e89f1a6`**, 19 October 2026.
-Its MIT licence credits Copyright (c) 2026 Panoptris. No code was copied, vendored,
-executed or installed; this repository and its original harness remain Apache 2.0.
-To reproduce the source inspection, clone separately and detach at that full revision.
-
-| Area | Pinned upstream source | Receiver/harness decision |
-|---|---|---|
-| OSD envelope | `publishOsd` sends raw properties, without `data`, `timestamp` or `gateway`. | DJI's [topic examples](https://github.com/dji-sdk/Cloud-API-Doc/blob/4ec6b0c7f9472aeb09a0a47949855d19c473ea07/docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/00.topic-definition.md) define an envelope. Keep receiver rejection; generate the envelope. |
-| Equipment | Advertises Dock 2/M30T; online topology sets gateway and child to aircraft codes `0/60/1`. | Those are not our Pilot 2 equipment. Use a minimal assigned-identity topology fixture and omit unverified model codes. Numeric model validation and native topology still need hardware packets. |
-| Authentication/TLS | Connects using broker URL and no explicit username/password or trusted-CA settings. URL credentials would expose secrets through arguments/logging. | Read device credentials privately. Accept verified `mqtts`/`wss`; plaintext only on loopback/development broker names. No URL credentials or TLS bypass. |
-| Permissions | Subscribes to services and publishes successful command replies and other Dock topics. | Publish only assigned topology/OSD; subscribe only to the topology receipt. Commands and other aircraft remain denied by ACLs. |
-| Altitude | Generated `height=altitude`, `elevation=altitude+10` without a configured geographic datum. | DJI's [M3 property definitions](https://github.com/dji-sdk/Cloud-API-Doc/blob/4ec6b0c7f9472aeb09a0a47949855d19c473ea07/docs/en/60.api-reference/10.pilot-to-cloud/00.mqtt/10.m3-series/00.properties.md) distinguish ellipsoid height from take-off-relative elevation. Generate explicitly separate values. |
-| Boundaries | Patrol is continuous and scenarios include HMS/mission/command handling. | Maximum three samples, at least two seconds apart, finite readback waits, disconnect on completion/failure. |
-
 ## Local acceptance
 
 ```sh

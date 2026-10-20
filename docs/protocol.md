@@ -2,7 +2,7 @@
 
 [Home](../README.md) · [Deployment](deployment.md) · [Blender](blender.md)
 
-Reviewed 19 October 2026. The relevant path is a **third-party cloud connection from Pilot 2**. This is not a REST API that lets us poll all DJI-owned cloud accounts. We host both the connection page and the MQTT service that the controller connects to.
+The relevant path is a **third-party cloud connection from Pilot 2**. This is not a REST API that lets us poll all DJI-owned cloud accounts. We host both the connection page and the MQTT service that the controller connects to.
 
 ## Onboarding handshake
 

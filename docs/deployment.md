@@ -2,7 +2,7 @@
 
 [Home](../README.md) · [Admin tasks](self-onboarding.md) · [Operations](operations.md) · [Acceptance](acceptance.md)
 
-For the hosting and Blender teams. Deploy the full stack: **Caddy, Mosquitto and the adapter**. A Docker-capable Linux VM with persistent disk is suitable. A DigitalOcean Droplet is one option. Use one application process per SQLite database.
+For the hosting and Blender teams. Deploy the full stack: **Caddy, Mosquitto and the adapter**. A Docker-capable Linux VM with persistent disk is suitable. Use one application process per SQLite database.
 
 ## Agree the deployment inputs
 
@@ -16,7 +16,7 @@ For the hosting and Blender teams. Deploy the full stack: **Caddy, Mosquitto and
 
 The DJI license must match this Cloud API product and pass on the actual controller. Configured credentials alone do not establish acceptance.
 
-For a small assisted trial, 2 GiB RAM / 1 vCPU is a starting size; monitor actual usage. Configure:
+For a small deployment, 2 GiB RAM / 1 vCPU is a starting size; monitor actual usage. Configure:
 
 - DNS pointing to the host and a trusted public TLS certificate.
 - Public TCP 80/443 and restricted SSH. UDP 443 is optional.
