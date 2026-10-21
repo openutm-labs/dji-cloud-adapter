@@ -7,6 +7,8 @@ import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
+from urllib.parse import urlsplit
+from uuid import UUID
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request
@@ -15,9 +17,10 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .blender import BlenderClient, Forwarder
+from .blender import BlenderClient, DeliveryError, Forwarder
 from .broker import BrokerProvisioner, BrokerUnavailable
 from .config import IDENTIFIER, Settings, load_settings
+from .declarations import Action, DeclarationError, Operations, Plan
 from .enrollment import EnrollmentError, EnrollmentStore
 from .mqtt import MqttReceiver
 from .store import Store
@@ -90,18 +93,28 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
     @asynccontextmanager
     async def lifespan(app):
         async with httpx.AsyncClient(timeout=10, follow_redirects=False, transport=transport) as client:
-            forwarder = Forwarder(settings, store, BlenderClient(settings, client))
+            blender = BlenderClient(settings, client)
+            operations = Operations(settings, store, blender)
+            app.state.operations = operations
+            forwarder = Forwarder(settings, store, blender, operations=operations)
             app.state.forwarder = forwarder
             task = None
             enrollment_task = None
+            operations_task = None
             if background:
                 receiver.start()
                 task = asyncio.create_task(forwarder.run())
+                if settings.declarations.enabled:
+                    operations_task = asyncio.create_task(operations.run())
                 if settings.mqtt.provisioner_password.get_secret_value():
                     enrollment_task = asyncio.create_task(reconcile())
             try:
                 yield
             finally:
+                if operations_task:
+                    operations_task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await operations_task
                 if enrollment_task:
                     enrollment_task.cancel()
                     with suppress(asyncio.CancelledError):
@@ -137,8 +150,11 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
         response.headers["Cache-Control"] = "no-store"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Content-Type-Options"] = "nosniff"
+        tile_url = urlsplit(settings.planning_map.tile_url)
+        tile_origin = f" https://{tile_url.netloc}" if tile_url.netloc else ""
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; "
+            f"img-src 'self' data:{tile_origin}; "
             "object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
         )
         return response
@@ -170,6 +186,7 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
             "workspace_name": settings.workspace_name,
             "device_name": device.name,
             "expires_at": row["expires_at"],
+            "declarations_enabled": settings.declarations.enabled,
             "mqtt": {
                 "host": settings.mqtt.public_url,
                 "username": device.mqtt_username,
@@ -301,6 +318,8 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
             "dji_configured": settings.dji.configured,
             "blender_configured": settings.blender.configured,
         }
+        if settings.declarations.enabled:
+            checks["declaration_worker_running"] = app.state.operations.running
         return JSONResponse(
             {"ready": all(checks.values()), "checks": checks},
             status_code=200 if all(checks.values()) else 503,
@@ -379,6 +398,34 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
     async def logout(request: Request):
         store.delete_session(bearer(request))
         return {"status": "signed_out"}
+
+    def declaration_device(request):
+        _, device = session(request)
+        if not settings.declarations.enabled:
+            raise HTTPException(404, "declarations_not_available")
+        return device
+
+    @app.exception_handler(DeclarationError)
+    async def declaration_error(request, exc):
+        return JSONResponse({"detail": exc.reason}, status_code=exc.status)
+
+    @app.exception_handler(DeliveryError)
+    async def declaration_auth_error(request, exc):
+        return JSONResponse({"detail": "declaration_service_unavailable"}, status_code=503)
+
+    @app.get("/api/pilot/declarations")
+    async def declaration_options(request: Request):
+        return app.state.operations.options(declaration_device(request))
+
+    @app.post("/api/pilot/declarations")
+    async def prepare_declaration(body: Plan, request: Request):
+        device = declaration_device(request)
+        async with app.state.operations.lock:
+            return app.state.operations.prepare(device, body)
+
+    @app.post("/api/pilot/declarations/{operation_id}")
+    async def declaration_action(operation_id: UUID, body: Action, request: Request):
+        return await app.state.operations.act(declaration_device(request), operation_id, body.action)
 
     @app.get("/api/admin/status")
     async def admin_status(request: Request):

@@ -117,6 +117,7 @@ class Ingestor:
             now,
             observation,
             self.settings.max_pending_samples,
+            associate_operation=self.settings.declarations.enabled,
         )
         if not inserted:
             self.store.increment("duplicate_osd")

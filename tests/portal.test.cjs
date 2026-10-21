@@ -35,6 +35,7 @@ function portal({
         appendChild(child) {
           (this.children ||= []).push(child);
         },
+        setAttribute(name, value) { (this.attributes ||= {})[name] = value; },
         addEventListener(name, fn) {
           this.listeners[name] = fn;
         },
@@ -55,7 +56,7 @@ function portal({
   };
   const context = {
     document: {
-      documentElement: { lang: "en" },
+      documentElement: { lang: "en", classList: {toggle() {}} },
       getElementById: node,
       createElement: () => ({value: "", textContent: ""}),
       querySelectorAll: () => [],
@@ -145,6 +146,8 @@ function portal({
       },
     };
   vm.createContext(context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "../src/dji_cloud_adaptor/web/planning-map.js"), "utf8"), context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "../src/dji_cloud_adaptor/web/declarations.js"), "utf8"), context);
   vm.runInContext(source, context);
   return {
     node,
