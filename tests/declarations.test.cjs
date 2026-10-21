@@ -10,11 +10,13 @@ function page({lostPrepare = false, loseAction = '', language = 'en'} = {}) {
   const node = id => {
     if (!nodes.has(id)) nodes.set(id, {hidden: false, disabled: false, value: '', textContent: '', listeners: {},
       appendChild(child) { if (!this.value) this.value = child.value; },
+      setAttribute(name, value) { (this.attributes ||= {})[name] = value; },
       addEventListener(event, fn) { this.listeners[event] = fn; }});
     return nodes.get(id);
   };
-  const context = {window: {}, document: {getElementById: node, querySelectorAll: () => [], createElement: () => ({})}};
+  const context = {window: {}, document: {documentElement: {classList: {toggle() {}}}, getElementById: node, querySelectorAll: () => [], createElement: () => ({})}};
   vm.createContext(context);
+  vm.runInContext(fs.readFileSync("src/dji_cloud_adaptor/web/planning-map.js", "utf8"), context);
   vm.runInContext(source, context);
   const api = async (url, body) => {
     calls.push({url, body: body && JSON.parse(JSON.stringify(body))});
@@ -144,4 +146,32 @@ test('Spanish status and recovery messages are available', async () => {
   assert.match(p.node('declaration-status').textContent, /Aceptada/);
   p.outage(true); await p.view.poll();
   assert.match(p.node('declaration-message').textContent, /no disponible/);
+});
+
+test('steppers and duration presets respect organisation limits', async () => {
+  const p = page();
+  await p.view.connect({declarations_enabled: true});
+  assert.equal(p.node('declaration-radius').value, '100');
+  await p.node('declaration-radius-more').listeners.click();
+  assert.equal(p.node('declaration-radius').value, '150');
+  p.node('declaration-height').value = '100';
+  await p.node('declaration-height-more').listeners.click();
+  assert.equal(p.node('declaration-height').value, '100');
+  await p.node('declaration-duration-15').listeners.click();
+  assert.equal(p.node('declaration-duration').value, '15');
+  assert.equal(p.node('declaration-duration-15').attributes['aria-pressed'], 'true');
+});
+
+test('editing a recovered draft restores its values and requires ground confirmation again', async () => {
+  const p = page();
+  await p.view.connect({declarations_enabled: true});
+  await p.prepare();
+  p.view.clear();
+  await p.view.connect({declarations_enabled: true});
+  await p.click('discard');
+  assert.equal(p.node('declaration-radius').value, '100');
+  assert.equal(p.node('declaration-duration').value, '30');
+  assert.equal(p.node('declaration-ground').checked, false);
+  assert.equal(p.node('declaration-review').hidden, true);
+  assert.equal(p.node('planner-step-plan').attributes['aria-current'], 'step');
 });

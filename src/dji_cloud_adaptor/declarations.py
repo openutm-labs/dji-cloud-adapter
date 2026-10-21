@@ -149,6 +149,26 @@ class Operations:
             rows = db.execute(
                 "SELECT * FROM operations WHERE device_id=? ORDER BY created_at DESC LIMIT 20", (device.id,)
             ).fetchall()
+            positions = []
+            for aircraft in device.aircraft:
+                if aircraft.simulation:
+                    continue
+                sample = db.execute(
+                    "SELECT payload,observed_at FROM samples WHERE device_id=? AND aircraft_sn=? "
+                    "ORDER BY observed_at DESC LIMIT 1",
+                    (device.id, aircraft.serial),
+                ).fetchone()
+                if sample:
+                    value = json.loads(sample["payload"])
+                    positions.append(
+                        {
+                            "serial": aircraft.serial,
+                            "lat": value["lat_dd"],
+                            "lon": value["lon_dd"],
+                            "observed_at": sample["observed_at"],
+                            "elevation": value["metadata"].get("elevation"),
+                        }
+                    )
         return {
             "enabled": True,
             "pilots": [{"id": p.id, "name": p.name} for p in self.pilots(device)],
@@ -159,6 +179,8 @@ class Operations:
                 "duration_minutes": config.max_duration_minutes,
             },
             "request_id": str(uuid4()),
+            "positions": positions,
+            "map": self.settings.planning_map.model_dump(),
             "server_time": time.time(),
             "operations": [self.view(dict(row)) for row in rows],
         }

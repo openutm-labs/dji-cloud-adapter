@@ -54,7 +54,7 @@ If the code is lost, contact the administrator for recovery. Do not register the
 | **Aircraft telemetry** | **Connected**: the adapter received a current aircraft position. |
 | **Flight Blender** | **API accepted**: the API accepted a current sample. |
 
-1. Examine **Last aircraft sample**, **Last API acceptance** and **Waiting to send** for current data or delayed delivery.
+1. Open **Connection details** and examine **Last aircraft sample**, **Last API acceptance** and **Waiting to send** for current data or delayed delivery.
 2. Tell the coordinator to examine the received data in Blender or the available dashboard.
 
 **Not configured**, **Not recent**, **Waiting** and **Status unavailable** need correction. **API accepted** alone does not prove storage of a full track. The check is complete when the coordinator finds current data from the correct aircraft. Do not start motors or take off for this check; use the lab's normal ground and GPS procedure.
@@ -63,13 +63,13 @@ If the code is lost, contact the administrator for recovery. Do not register the
 
 If **Flight declaration** is available, your administrator has enabled the area-planning workflow. Keep the aircraft on the ground at take-off.
 
-1. Select your name and the connected aircraft. Enter the area radius, maximum height above take-off, start time and duration.
-2. Confirm that the plan covers the flight and your operating checks are complete. Select **Review plan** and check the saved position, altitude range and time.
+1. Check the selected pilot and aircraft. Resize the circle on the map, with the radius buttons or by entering a value. Set height, start time and duration; the preset buttons reduce typing.
+2. Confirm that the plan covers the flight and your operating checks are complete. Select **Review plan** and check the saved boundary and flight window. Open **Declaration details** for coordinates and WGS84 altitude limits.
 3. Select **Submit declaration** once. If submission is unconfirmed, use **Check status** or contact the administrator. Do not create another plan to recover a lost response.
 4. Wait for **Accepted** and recorded approval. Within the flight window, select **Activate declaration** when ready to fly.
 5. After landing, select **End declaration after landing**. If samples are waiting, let them drain and select End again. Record any rejected or expired samples with the coordinator.
 
-This declares a VLOS circle around take-off. It does not import your Pilot 2 mission or measure terrain clearance. Your selected name is a responsibility record, not personal sign-in. Approval in Blender does not replace required flight permissions. Follow the organisation’s procedure if this planner does not cover your flight.
+Use **Edit plan** to change a draft and review it again. The map shows streets, not airspace restrictions. This declares a VLOS circle around take-off. It does not import your Pilot 2 mission or measure terrain clearance. Your selected name is a responsibility record, not personal sign-in. Approval in Blender does not replace required flight permissions. Follow the organisation’s procedure if this planner does not cover your flight.
 
 ## Use and close the connection
 

@@ -7,6 +7,7 @@ import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
+from urllib.parse import urlsplit
 from uuid import UUID
 
 import httpx
@@ -149,8 +150,11 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
         response.headers["Cache-Control"] = "no-store"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Content-Type-Options"] = "nosniff"
+        tile_url = urlsplit(settings.planning_map.tile_url)
+        tile_origin = f" https://{tile_url.netloc}" if tile_url.netloc else ""
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; "
+            f"img-src 'self' data:{tile_origin}; "
             "object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
         )
         return response

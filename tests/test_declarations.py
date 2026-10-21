@@ -429,3 +429,61 @@ def test_network_pending_state_is_not_presented_as_accepted(pilot, declarations,
     assert action(pilot, op, "activate").status_code == 409
     assert action(pilot, op, "cancel").json()["state"] == "withdrawn"
     assert [entry["state"] for entry in upstream.states] == [6]
+
+
+def test_map_options_only_include_this_devices_positions(pilot, declarations, store, osd):
+    from dji_cloud_adaptor.config import PlanningMap
+
+    ground(declarations, store, osd)
+    with store.connection() as db:
+        # Another controller's newer position must not appear in this controller's map.
+        db.execute(
+            "INSERT INTO samples(id,device_id,aircraft_sn,session_id,observed_at,received_at,payload) "
+            "VALUES ('other','controller2','OTHER','other',?,?,?)",
+            (time.time(), time.time(), json.dumps({"lat_dd": 77, "lon_dd": 88, "metadata": {}})),
+        )
+    declarations.planning_map = PlanningMap(
+        tile_url="https://tiles.example.org/{z}/{x}/{y}.png",
+        attribution="Example maps",
+        attribution_url="https://example.org/maps",
+    )
+    response = pilot.get("/api/pilot/declarations")
+    result = response.json()
+    assert len(result["positions"]) == 1
+    assert result["positions"][0]["serial"] == "EXAMPLE-M3E-001"
+    assert result["positions"][0]["lat"] == osd["data"]["latitude"]
+    assert result["positions"][0]["elevation"] == 0
+    assert result["map"]["attribution"] == "Example maps"
+    assert "test-blender-token" not in response.text
+    csp = response.headers["Content-Security-Policy"]
+    assert "img-src 'self' data: https://tiles.example.org;" in csp
+    assert "connect-src 'self';" in csp and "script-src 'self';" in csp
+    assert "openstreetmap.org" not in csp
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://tiles.example.org/{z}/{x}/{y}.png",
+        "https://user:secret@tiles.example.org/{z}/{x}/{y}.png",
+        "https://{z}.example.org/{x}/{y}.png",
+        "https://tiles.example.org/{z}/{x}.png",
+        "https://tiles.example.org/{z}/{x}/{y}.png#fragment",
+        "https://tiles.example.org/{z}/{x}/{y}.png\n",
+        "https://tiles.example.org/{z}/{x}/{y}.png\x00",
+    ],
+)
+def test_map_rejects_invalid_tile_templates(url):
+    from dji_cloud_adaptor.config import PlanningMap
+
+    with pytest.raises(ValidationError):
+        PlanningMap(tile_url=url)
+
+
+def test_map_can_disable_external_tiles(pilot, declarations):
+    from dji_cloud_adaptor.config import PlanningMap
+
+    declarations.planning_map = PlanningMap(tile_url="")
+    response = pilot.get("/api/pilot/declarations")
+    assert response.json()["map"]["tile_url"] == ""
+    assert "img-src 'self' data:;" in response.headers["Content-Security-Policy"]

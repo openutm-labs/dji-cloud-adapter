@@ -4,12 +4,25 @@ window.PilotDeclarations = function ({ api, language, aircraftSerial }) {
   const $ = (id) => document.getElementById(id);
   const words = {
     en: {
-      title: "Flight declaration", intro: "Plan a VLOS flight around the take-off point. Review the area and time before you submit. Use your organisation’s flight procedure for other flight types.",
+      plannerLabel: "VLOS FLIGHT PLAN", stepPlan: "Plan", stepReview: "Review", stepDeclare: "Declare",
+      operatingArea: "Operating area", fitArea: "Fit area", areaKey: "Flight area", takeoffMarker: "Take-off point",
+      areaAndHeight: "Area and height", flightWindow: "Flight window", crewAndAircraft: "Pilot and aircraft",
+      startSoon: "In 2 minutes", shortRadius: "Radius", shortHeight: "Height", shortDuration: "Duration",
+      technicalDetails: "Declaration details", decrease: "Decrease", increase: "Increase",
+      mapScope: "Street map only. Airspace restrictions are not shown.",
+      area_not_supported: "This planner does not support this location. Use your organisation’s planning procedure.",
+      mapHint: "Tap the map or drag the ↔ handle to resize. The circle stays centred on take-off.",
+      mapWaiting: "Waiting for a recent ground position from the selected aircraft.",
+      mapUnavailable: "Map unavailable. You can enter the radius and review the coordinates below.",
+      tilesUnavailable: "Basemap unavailable. The flight area and take-off marker remain visible.",
+      outlineOnly: "Area outline only. No basemap is configured.", savedBoundary: "Saved declaration boundary.",
+      radiusHandle: "Drag to change the area radius", proposedArea: "Proposed area", savedArea: "Saved area", previousFlight: "Previous declaration", zoomIn: "Zoom in", zoomOut: "Zoom out",
+      title: "Flight declaration", intro: "Set the flight area, height and time. Review the plan before submitting.",
       pilot: "Pilot", aircraft: "Aircraft", radius: "Area radius (m)", height: "Maximum height above take-off (m)",
       start: "Start (controller local time)", duration: "Duration (minutes)",
-      ground: "The aircraft is on the ground at the take-off point. This area, height and time cover the planned flight. I have completed the required operating checks.",
+      ground: "Aircraft on the ground. The plan covers my flight and operating checks are complete.",
       prepare: "Review plan", submit: "Submit declaration", refresh: "Check status", activate: "Activate declaration",
-      finish: "End declaration after landing", cancel: "Cancel declaration", discard: "Discard draft",
+      finish: "End declaration after landing", cancel: "Cancel declaration", discard: "Edit plan",
       limit: "Organisation limits", review: "Review before submission", centre: "Take-off point", volume: "Declared altitude range (WGS84 ellipsoid, m)",
       window: "Flight window", identifier: "Declaration ID", pilotInfo: "Pilot selection records responsibility. It is not a personal sign-in.",
       disclaimer: "A declaration does not grant flight permission or control the aircraft. Activate it only when you are ready to fly. End it after landing.",
@@ -20,19 +33,32 @@ window.PilotDeclarations = function ({ api, language, aircraftSerial }) {
       samples: "Declaration telemetry: API accepted / waiting / rejected or expired", last: "Last declaration API acceptance",
       ground_sample_required: "A position at ground level is required. Keep the aircraft powered on at the take-off point. Check telemetry, then review again.",
       operation_already_open: "This aircraft already has an open plan. Check status to recover it.",
-      plan_start: "Choose a start at least 15 seconds ahead and within the next 24 hours. Discard an expired draft and review a new plan.",
+      plan_start: "Choose a start at least 15 seconds ahead and within the next 24 hours. Choose Edit plan to update an expired draft.",
       plan_limits: "The plan exceeds your organisation’s limits. Check the radius, height and duration.",
       activation_not_allowed: "Activation needs an accepted, approved declaration within its flight window. Check status or contact your coordinator.",
       plan_conflict: "The saved plan differs from this request. Check status before continuing.",
       invalid_fields: "Complete all plan fields with valid values and confirm the operating checks.",
     },
     es: {
-      title: "Declaración de vuelo", intro: "Planifique un vuelo VLOS alrededor del punto de despegue. Revise el área y el horario antes de enviar. Use el procedimiento de su organización para otros tipos de vuelo.",
+      plannerLabel: "PLAN DE VUELO VLOS", stepPlan: "Planificar", stepReview: "Revisar", stepDeclare: "Declarar",
+      operatingArea: "Área de operación", fitArea: "Ver área", areaKey: "Área de vuelo", takeoffMarker: "Punto de despegue",
+      areaAndHeight: "Área y altura", flightWindow: "Horario de vuelo", crewAndAircraft: "Piloto y aeronave",
+      startSoon: "En 2 minutos", shortRadius: "Radio", shortHeight: "Altura", shortDuration: "Duración",
+      technicalDetails: "Detalles de declaración", decrease: "Reducir", increase: "Aumentar",
+      mapScope: "Solo mapa de calles. No muestra restricciones del espacio aéreo.",
+      area_not_supported: "El planificador no admite esta ubicación. Use el procedimiento de su organización.",
+      mapHint: "Toque el mapa o arrastre ↔ para ajustar el radio. El centro permanece en el despegue.",
+      mapWaiting: "Esperando una posición reciente en tierra de la aeronave seleccionada.",
+      mapUnavailable: "Mapa no disponible. Puede introducir el radio y revisar las coordenadas abajo.",
+      tilesUnavailable: "Mapa base no disponible. El área de vuelo y el punto de despegue siguen visibles.",
+      outlineOnly: "Solo contorno. No hay mapa base configurado.", savedBoundary: "Límite guardado de la declaración.",
+      radiusHandle: "Arrastre para cambiar el radio", proposedArea: "Área propuesta", savedArea: "Área guardada", previousFlight: "Declaración anterior", zoomIn: "Acercar", zoomOut: "Alejar",
+      title: "Declaración de vuelo", intro: "Defina el área, la altura y el horario. Revise el plan antes de enviar.",
       pilot: "Piloto", aircraft: "Aeronave", radius: "Radio del área (m)", height: "Altura máxima sobre el despegue (m)",
       start: "Inicio (hora local del controlador)", duration: "Duración (minutos)",
-      ground: "La aeronave está en tierra en el punto de despegue. El área, la altura y el horario cubren el vuelo previsto. He completado las comprobaciones operativas requeridas.",
+      ground: "Aeronave en tierra. El plan cubre mi vuelo y completé las comprobaciones operativas.",
       prepare: "Revisar plan", submit: "Enviar declaración", refresh: "Consultar estado", activate: "Activar declaración",
-      finish: "Finalizar declaración tras aterrizar", cancel: "Cancelar declaración", discard: "Descartar borrador",
+      finish: "Finalizar declaración tras aterrizar", cancel: "Cancelar declaración", discard: "Editar plan",
       limit: "Límites de la organización", review: "Revise antes de enviar", centre: "Punto de despegue", volume: "Rango de altitud declarado (elipsoide WGS84, m)",
       window: "Horario del vuelo", identifier: "ID de declaración", pilotInfo: "La selección del piloto registra la responsabilidad. No es un inicio de sesión personal.",
       disclaimer: "Una declaración no otorga permiso de vuelo ni controla la aeronave. Actívela solo cuando esté listo para volar. Finalícela después de aterrizar.",
@@ -43,7 +69,7 @@ window.PilotDeclarations = function ({ api, language, aircraftSerial }) {
       samples: "Telemetría de la declaración: API aceptó / en espera / rechazada o vencida", last: "Última aceptación de la API para la declaración",
       ground_sample_required: "Se requiere una posición a nivel del suelo. Mantenga la aeronave encendida en el punto de despegue. Revise la telemetría y vuelva a revisar el plan.",
       operation_already_open: "Esta aeronave ya tiene un plan abierto. Consulte el estado para recuperarlo.",
-      plan_start: "Elija un inicio al menos 15 segundos después y dentro de las próximas 24 horas. Descarte un borrador vencido y revise un plan nuevo.",
+      plan_start: "Elija un inicio al menos 15 segundos después y dentro de las próximas 24 horas. Elija Editar plan para actualizar un borrador vencido.",
       plan_limits: "El plan supera los límites de la organización. Revise radio, altura y duración.",
       activation_not_allowed: "Se necesita una declaración aceptada y aprobada dentro de su horario para activar. Consulte el estado o contacte al coordinador.",
       plan_conflict: "El plan guardado difiere de esta solicitud. Consulte el estado antes de continuar.",
@@ -52,15 +78,58 @@ window.PilotDeclarations = function ({ api, language, aircraftSerial }) {
   };
   const tr = (key) => words[language()][key] || words[language()].unavailable;
   let enabled = false, busy = false, current = null, requestId = "", pendingPlan = null, generation = 0;
-  let options = null;
+  let options = null, optionsReceivedAt = 0;
+  const selectChoices = new Map();
+  const planningMap = window.DeclarationMap({
+    element: $("declaration-map"), message: $("declaration-map-message"), label: tr,
+    maximum: () => options ? options.limits.radius_m : 10000,
+    onRadius: (value) => { $("declaration-radius").value = String(value); },
+  });
+  function step(active) {
+    for (const name of ["plan", "review", "declare"]) {
+      $("planner-step-" + name).setAttribute("aria-current", name === active ? "step" : "false");
+    }
+  }
+  function liveMap() {
+    if (!options) return;
+    const selected = $("declaration-aircraft").value;
+    const position = (options.positions || []).find((point) => point.serial === selected);
+    $("declaration-map-caption").textContent = tr("proposedArea");
+    planningMap.live(position, Number($("declaration-radius").value), options.server_time, options.map);
+  }
+  function presets() {
+    for (const minutes of [15, 30, 60]) {
+      const button = $("declaration-duration-" + minutes);
+      button.disabled = Boolean(options && minutes > options.limits.duration_minutes);
+      button.setAttribute("aria-pressed", Number($("declaration-duration").value) === minutes ? "true" : "false");
+    }
+  }
+  function startSoon() {
+    if (!options) return;
+    const now = options.server_time + (Date.now() - optionsReceivedAt) / 1000;
+    const start = new Date((now + 120) * 1000);
+    start.setMinutes(start.getMinutes() - start.getTimezoneOffset());
+    $("declaration-start").value = start.toISOString().slice(0, 16);
+  }
   function translate() {
     document.querySelectorAll("[data-declaration-text]").forEach((node) => {
       node.textContent = tr(node.dataset.declarationText);
     });
+    for (const field of ["radius", "height", "duration"]) {
+      $("declaration-" + field + "-less").setAttribute("aria-label", `${tr("decrease")} ${tr(field)}`);
+      $("declaration-" + field + "-more").setAttribute("aria-label", `${tr("increase")} ${tr(field)}`);
+    }
+    $("declaration-map").setAttribute("aria-label", tr("operatingArea"));
+    $("planner-steps").setAttribute("aria-label", `${tr("stepPlan")}, ${tr("stepReview")}, ${tr("stepDeclare")}`);
+    $("planner-duration-presets").setAttribute("aria-label", tr("duration"));
     if (current) render(current);
+    planningMap.translate();
   }
   function clear() {
     generation++;
+    planningMap.clear();
+    selectChoices.clear();
+    document.documentElement.classList.toggle("planning", false);
     enabled = false; current = null; options = null; requestId = ""; pendingPlan = null;
     $("declaration-card").hidden = true;
     $("declaration-pilot").textContent = "";
@@ -83,7 +152,17 @@ window.PilotDeclarations = function ({ api, language, aircraftSerial }) {
     current = op;
     const closed = ["closed", "discarded"].includes(op.stage);
     $("declaration-form").hidden = !closed;
-    $("declaration-review").hidden = false;
+    $("declaration-review").hidden = closed;
+    step(op.stage === "prepared" ? "review" : closed ? "plan" : "declare");
+    if (!closed) {
+      planningMap.saved(op.geometry, options ? options.map : {});
+      $("declaration-map-caption").textContent = tr("savedArea");
+    } else liveMap();
+    $("review-radius").textContent = `${op.plan.radius_m} m`;
+    $("review-height").textContent = `${op.plan.height_m} m`;
+    $("review-duration").textContent = `${op.plan.duration_minutes} min`;
+    $("declaration-review-crew").textContent = `${op.pilot_name} · ${op.aircraft_sn}`;
+    $("declaration-review-window").textContent = `${new Date(op.start).toLocaleString(language())} – ${new Date(op.end).toLocaleString(language())}`;
     const props = op.geometry.features[0].properties;
     const reference = props.takeoff_reference;
     const localDate = (value) => new Date(value).toLocaleString(language() === "es" ? "es" : "en");
@@ -112,9 +191,13 @@ window.PilotDeclarations = function ({ api, language, aircraftSerial }) {
     if (op.stage === "finishing" && fresh) actions.push("finish");
     actionButtons(actions);
     $("declaration-message").textContent = op.stage === "uncertain" ? tr("uncertain")
-      : op.stage === "finishing" ? tr("finishing") : op.error ? tr("unavailable") : "";
+      : op.stage === "finishing" ? tr("finishing") : op.error ? tr("unavailable")
+      : op.stage === "closed" ? `${tr("previousFlight")}: ${tr(op.state)}` : "";
   }
   function fillSelect(id, rows, key) {
+    const signature = JSON.stringify(rows.map((row) => [row[key], row.name]));
+    if (selectChoices.get(id) === signature) return;
+    selectChoices.set(id, signature);
     const previous = $(id).value;
     $(id).textContent = "";
     for (const row of rows) {
@@ -130,12 +213,9 @@ window.PilotDeclarations = function ({ api, language, aircraftSerial }) {
     try {
       const result = await api("/api/pilot/declarations");
       if (!enabled || version !== generation) return;
-      options = result;
-      if (!$("declaration-start").value) {
-        const start = new Date((result.server_time + 120) * 1000);
-        start.setMinutes(start.getMinutes() - start.getTimezoneOffset());
-        $("declaration-start").value = start.toISOString().slice(0, 16);
-      }
+      options = result; optionsReceivedAt = Date.now();
+      $("declaration-card").hidden = false;
+      if (!$("declaration-start").value) startSoon();
       if (!requestId) requestId = result.request_id;
       fillSelect("declaration-pilot", result.pilots, "id");
       fillSelect("declaration-aircraft", result.aircraft, "serial");
@@ -144,7 +224,13 @@ window.PilotDeclarations = function ({ api, language, aircraftSerial }) {
       for (const field of ["radius", "height", "duration"]) {
         $("declaration-" + field).max = result.limits[field === "duration" ? "duration_minutes" : field + "_m"];
       }
-      $("declaration-limits").textContent = `${tr("limit")}: ${tr("radius")} ≤ ${result.limits.radius_m}; ${tr("height")} ≤ ${result.limits.height_m}; ${tr("duration")} ≤ ${result.limits.duration_minutes}.`;
+      for (const [field, initial] of [["radius", 100], ["height", 50], ["duration", 30]]) {
+        const input = $("declaration-" + field);
+        if (!input.value) input.value = String(Math.min(initial, Number(input.max)));
+      }
+      $("declaration-height").min = Math.min(1, result.limits.height_m);
+      presets();
+      $("declaration-limits").textContent = `${tr("limit")}: ${tr("shortRadius")} ≤ ${result.limits.radius_m} m · ${tr("shortHeight")} ≤ ${result.limits.height_m} m.`;
       const recovered = result.operations.find((op) => !["closed", "discarded"].includes(op.stage))
         || result.operations.find((op) => op.id === (current && current.id));
       if (recovered) {
@@ -154,11 +240,15 @@ window.PilotDeclarations = function ({ api, language, aircraftSerial }) {
         $("declaration-form").hidden = false;
         $("declaration-review").hidden = true;
         actionButtons([]);
+        step("plan"); liveMap();
       }
       $("declaration-card").hidden = false;
     } catch {
       if (version !== generation || !enabled) return;
       $("declaration-message").textContent = tr("unavailable");
+      if (!current || ["closed", "discarded"].includes(current.stage)) {
+        planningMap.live(null, Number($("declaration-radius").value), 0, options ? options.map : {});
+      }
       $("declaration-status").textContent = tr("unknown");
       actionButtons([]);
     }
@@ -166,6 +256,7 @@ window.PilotDeclarations = function ({ api, language, aircraftSerial }) {
   async function connect(config) {
     clear();
     enabled = config.declarations_enabled === true;
+    document.documentElement.classList.toggle("planning", enabled);
     if (enabled) { translate(); await poll(); }
   }
   $("declaration-form").addEventListener("submit", async (event) => {
@@ -200,6 +291,7 @@ window.PilotDeclarations = function ({ api, language, aircraftSerial }) {
       const version = generation;
       busy = true; actionButtons([]);
       let failure = "";
+      const editing = action === "discard" && current && current.stage === "prepared" ? current.plan : null;
       try {
         if (pendingPlan) {
           // Same frozen request ID and body: safe even if the first response was lost.
@@ -214,6 +306,17 @@ window.PilotDeclarations = function ({ api, language, aircraftSerial }) {
           requestId = "";
           $("declaration-ground").checked = false;
           $("declaration-start").value = "";
+          if (editing) {
+            $("declaration-radius").value = String(editing.radius_m);
+            $("declaration-height").value = String(editing.height_m);
+            $("declaration-duration").value = String(editing.duration_minutes);
+            $("declaration-pilot").value = editing.pilot_id;
+            $("declaration-aircraft").value = editing.aircraft_sn;
+            const start = new Date(editing.start);
+            start.setMinutes(start.getMinutes() - start.getTimezoneOffset());
+            $("declaration-start").value = start.toISOString().slice(0, 16);
+            if (Date.parse(editing.start) / 1000 < options.server_time + 15) startSoon();
+          }
         }
       } catch (error) { failure = tr(error.message); }
       finally {
@@ -226,5 +329,29 @@ window.PilotDeclarations = function ({ api, language, aircraftSerial }) {
       }
     });
   }
+  for (const [field, increment] of [["radius", 50], ["height", 10], ["duration", 5]]) {
+    const input = $("declaration-" + field);
+    for (const [suffix, sign] of [["less", -1], ["more", 1]]) {
+      $("declaration-" + field + "-" + suffix).addEventListener("click", () => {
+        const minimum = Number(input.min) || 1, maximum = Number(input.max) || 10000;
+        input.value = String(Math.max(minimum, Math.min(maximum, (Number(input.value) || minimum) + sign * increment)));
+        if (field === "radius") planningMap.setRadius(Number(input.value));
+        presets();
+      });
+    }
+    input.addEventListener("input", () => {
+      if (field === "radius") planningMap.setRadius(Number(input.value));
+      presets();
+    });
+  }
+  for (const minutes of [15, 30, 60]) {
+    $("declaration-duration-" + minutes).addEventListener("click", () => {
+      if (!options || minutes > options.limits.duration_minutes) return;
+      $("declaration-duration").value = String(minutes); presets();
+    });
+  }
+  $("declaration-start-soon").addEventListener("click", startSoon);
+  $("declaration-fit").addEventListener("click", () => planningMap.fit());
+  $("declaration-aircraft").addEventListener("change", liveMap);
   return { connect, poll, clear, translate };
 };

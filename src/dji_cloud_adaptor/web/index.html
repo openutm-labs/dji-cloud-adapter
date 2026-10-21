@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light" />
     <title>OpenUTM · Connect your controller</title>
+    <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css" />
     <link rel="stylesheet" href="/static/style.css" />
+    <script src="/static/vendor/leaflet/leaflet.js" defer></script>
+    <script src="/static/planning-map.js" defer></script>
     <script src="/static/declarations.js" defer></script>
     <script src="/static/portal.js" defer></script>
   </head>
@@ -116,6 +119,7 @@
             <span data-text="blender">Flight Blender</span
             ><span id="blender-state" class="badge" role="status"></span>
           </div>
+          <details class="connection-details"><summary data-text="connectionDetails">Connection details</summary>
           <dl class="details">
             <div>
               <dt data-text="received">Last aircraft sample</dt>
@@ -139,44 +143,92 @@
           >
             Disconnect this controller
           </button>
+          </details>
         </section>
-        <section id="declaration-card" class="card" hidden>
-          <h2 data-declaration-text="title">Flight declaration</h2>
-          <p data-declaration-text="intro"></p>
-          <p id="declaration-limits" class="hint"></p>
-          <form id="declaration-form">
-            <label for="declaration-pilot" data-declaration-text="pilot">Pilot</label>
-            <select id="declaration-pilot" required></select>
-            <p class="hint" data-declaration-text="pilotInfo"></p>
-            <label for="declaration-aircraft" data-declaration-text="aircraft">Aircraft</label>
-            <select id="declaration-aircraft" required></select>
-            <label for="declaration-radius" data-declaration-text="radius"></label>
-            <input id="declaration-radius" type="number" min="10" step="1" required />
-            <label for="declaration-height" data-declaration-text="height"></label>
-            <input id="declaration-height" type="number" min="1" step="1" required />
-            <label for="declaration-start" data-declaration-text="start"></label>
-            <input id="declaration-start" type="datetime-local" required />
-            <label for="declaration-duration" data-declaration-text="duration"></label>
-            <input id="declaration-duration" type="number" min="1" step="1" required />
-            <label class="confirmation"><input id="declaration-ground" type="checkbox" required /><span data-declaration-text="ground"></span></label>
-            <button id="declaration-prepare" type="submit" data-declaration-text="prepare"></button>
-          </form>
-          <div id="declaration-review" hidden>
-            <h3 data-declaration-text="review"></h3>
-            <p id="declaration-summary" class="plan-summary"></p>
-            <p id="declaration-status" role="status" aria-live="polite"></p>
-            <p id="declaration-telemetry" class="hint"></p>
+        <section id="declaration-card" class="card planner" hidden>
+          <div class="planner-heading">
+            <div><div class="step-label" data-declaration-text="plannerLabel">FLIGHT PLANNING</div>
+              <h2 data-declaration-text="title">Flight declaration</h2>
+              <p data-declaration-text="intro"></p></div>
+            <ol id="planner-steps" class="planner-steps" aria-label="Declaration steps">
+              <li id="planner-step-plan"><span>1</span><b data-declaration-text="stepPlan">Plan</b></li>
+              <li id="planner-step-review"><span>2</span><b data-declaration-text="stepReview">Review</b></li>
+              <li id="planner-step-declare"><span>3</span><b data-declaration-text="stepDeclare">Declare</b></li>
+            </ol>
           </div>
-          <p data-declaration-text="disclaimer" class="hint"></p>
-          <div class="declaration-actions">
-            <button id="declaration-submit" type="button" data-declaration-text="submit" hidden></button>
-            <button id="declaration-activate" type="button" data-declaration-text="activate" hidden></button>
-            <button id="declaration-finish" type="button" data-declaration-text="finish" hidden></button>
-            <button id="declaration-cancel" type="button" class="secondary" data-declaration-text="cancel" hidden></button>
-            <button id="declaration-discard" type="button" class="secondary" data-declaration-text="discard" hidden></button>
-            <button id="declaration-refresh" type="button" class="secondary" data-declaration-text="refresh"></button>
+          <div class="planner-layout">
+            <div class="planner-map-panel">
+              <div class="map-toolbar"><div><strong data-declaration-text="operatingArea">Operating area</strong>
+                <span id="declaration-map-caption"></span></div>
+                <button id="declaration-fit" type="button" class="secondary" data-declaration-text="fitArea">Fit area</button></div>
+              <div id="declaration-map" role="region" aria-label="Flight planning map"></div>
+              <div class="map-footer"><span class="map-key"><i></i><span data-declaration-text="areaKey">Flight area</span></span>
+                <span class="map-key"><b>H</b><span data-declaration-text="takeoffMarker">Take-off point</span></span></div>
+              <p id="declaration-map-message" class="map-message" role="status"></p>
+              <p class="map-scope" data-declaration-text="mapScope"></p>
+            </div>
+            <div class="planner-panel">
+              <form id="declaration-form">
+                <fieldset><legend data-declaration-text="areaAndHeight">Area and height</legend>
+                  <div class="planner-field"><label for="declaration-radius" data-declaration-text="radius"></label>
+                    <div class="number-stepper"><button id="declaration-radius-less" type="button">−</button>
+                      <input id="declaration-radius" type="number" min="10" step="any" required />
+                      <button id="declaration-radius-more" type="button">+</button></div></div>
+                  <div class="planner-field"><label for="declaration-height" data-declaration-text="height"></label>
+                    <div class="number-stepper"><button id="declaration-height-less" type="button">−</button>
+                      <input id="declaration-height" type="number" min="1" step="any" required />
+                      <button id="declaration-height-more" type="button">+</button></div></div>
+                  <p id="declaration-limits" class="hint"></p>
+                </fieldset>
+                <fieldset><legend data-declaration-text="flightWindow">Flight window</legend>
+                  <div class="planner-field"><div class="field-heading"><label for="declaration-start" data-declaration-text="start"></label>
+                    <button id="declaration-start-soon" type="button" class="text-button" data-declaration-text="startSoon">In 2 minutes</button></div>
+                    <input id="declaration-start" type="datetime-local" required /></div>
+                  <div class="planner-field"><label for="declaration-duration" data-declaration-text="duration"></label>
+                    <div class="number-stepper"><button id="declaration-duration-less" type="button">−</button>
+                      <input id="declaration-duration" type="number" min="1" step="1" required />
+                      <button id="declaration-duration-more" type="button">+</button></div>
+                    <div id="planner-duration-presets" class="duration-presets" role="group" aria-label="Flight duration">
+                      <button id="declaration-duration-15" type="button">15 min</button>
+                      <button id="declaration-duration-30" type="button">30 min</button>
+                      <button id="declaration-duration-60" type="button">60 min</button></div></div>
+                </fieldset>
+                <fieldset><legend data-declaration-text="crewAndAircraft">Pilot and aircraft</legend>
+                  <div class="planner-field"><label for="declaration-pilot" data-declaration-text="pilot">Pilot</label>
+                    <select id="declaration-pilot" required></select></div>
+                  <div class="planner-field"><label for="declaration-aircraft" data-declaration-text="aircraft">Aircraft</label>
+                    <select id="declaration-aircraft" required></select></div>
+                </fieldset>
+                <div class="planner-submit"><label class="confirmation"><input id="declaration-ground" type="checkbox" required /><span data-declaration-text="ground"></span></label>
+                  <button id="declaration-prepare" type="submit" data-declaration-text="prepare"></button></div>
+              </form>
+              <div id="declaration-review" hidden>
+                <h3 data-declaration-text="review"></h3>
+                <div class="review-metrics"><div><span data-declaration-text="shortRadius">Radius</span><b id="review-radius"></b></div>
+                  <div><span data-declaration-text="shortHeight">Height</span><b id="review-height"></b></div>
+                  <div><span data-declaration-text="shortDuration">Duration</span><b id="review-duration"></b></div></div>
+                <p id="declaration-review-crew" class="review-crew"></p>
+                <p id="declaration-review-window" class="review-window"></p>
+                <p id="declaration-status" role="status" aria-live="polite"></p>
+                <details class="technical-details"><summary data-declaration-text="technicalDetails">Declaration details</summary>
+                  <p id="declaration-summary" class="plan-summary"></p>
+                  <p id="declaration-telemetry" class="hint"></p>
+                  <p data-declaration-text="pilotInfo" class="hint"></p></details>
+              </div>
+              <div class="planner-actions">
+                <div class="declaration-actions">
+                  <button id="declaration-submit" type="button" data-declaration-text="submit" hidden></button>
+                  <button id="declaration-activate" type="button" data-declaration-text="activate" hidden></button>
+                  <button id="declaration-finish" type="button" data-declaration-text="finish" hidden></button>
+                  <button id="declaration-cancel" type="button" class="secondary" data-declaration-text="cancel" hidden></button>
+                  <button id="declaration-discard" type="button" class="secondary" data-declaration-text="discard" hidden></button>
+                  <button id="declaration-refresh" type="button" class="secondary" data-declaration-text="refresh"></button>
+                </div>
+                <p id="declaration-message" role="status" aria-live="polite"></p>
+                <p data-declaration-text="disclaimer" class="hint"></p>
+              </div>
+            </div>
           </div>
-          <p id="declaration-message" role="status" aria-live="polite"></p>
         </section>
         <aside class="footnote">
           <span class="dot" aria-hidden="true"></span>

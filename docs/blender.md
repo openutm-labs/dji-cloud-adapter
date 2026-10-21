@@ -115,11 +115,32 @@ Blender versions can omit operator identity from declaration list fields. The ad
 
 The controller connection code grants device access. Selecting a pilot records a claimed responsibility; it does not authenticate that person. Use a controlled controller handover and roster procedure, or add personal authentication before using this for activities that require verified individual identity. Simulation aircraft cannot create declarations.
 
+### Planning map
+
+The planner follows the Android app’s manual-flight layout: map beside settings on wide screens, map above settings on phones. Tap the map or drag the radius handle to resize the circle around the aircraft’s fresh ground position. Height buttons and duration presets reduce typing. **Review plan** locks the map to the exact saved GeoJSON boundary; **Edit plan** restores the draft values for a new review.
+
+Street tiles default to OpenStreetMap. They are a visual reference, not an airspace or terrain-clearance service. The map shows no airspace restrictions. The area outline remains available when street tiles fail; numeric inputs remain available if the map library cannot load.
+
+Administrators can add this top-level setting to the private configuration:
+
+```json
+"planning_map": {
+  "tile_url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  "attribution": "© OpenStreetMap contributors",
+  "attribution_url": "https://www.openstreetmap.org/copyright",
+  "max_zoom": 19
+}
+```
+
+Choose a provider approved for your deployment. Tile requests reveal the viewed area and page origin to that provider. Browser-visible tile URLs must contain only public client tokens, never private service credentials. An empty `tile_url` disables external tiles and leaves the outline. Scripts and styles are bundled locally using [Leaflet 1.9.4](https://leafletjs.com/reference.html), with its licence and npm integrity record under `web/vendor/leaflet`.
+
+For public OSM tiles, follow the [tile policy](https://operations.osmfoundation.org/policies/tiles/). The map displays attribution, requests viewport tiles only, preserves browser caching and sends an origin-only image referrer. No offline or bulk tile download is provided. The content policy allows images only from the configured tile origin in addition to local assets; API calls remain on the adapter’s origin.
+
 ### Plan and lifecycle
 
 1. On the ground at take-off, connect telemetry and select the assigned pilot and aircraft.
 2. Enter the area radius, maximum height above take-off, start time and duration. Confirm that the volume covers the intended flight and that operating checks are complete.
-3. Select **Review plan**. The adapter requires a source position no older than 10 seconds with take-off-relative elevation within 2 m. Review the saved coordinates, altitude range and time window.
+3. Resize the circle on the map, with the radius buttons or by entering a value. Select **Review plan**. The adapter requires a source position no older than 10 seconds with take-off-relative elevation within 2 m. Review the saved boundary, altitude range and time window. Exact coordinates and WGS84 limits are under **Declaration details**.
 4. Select **Submit declaration**. Wait for Blender’s recorded state and approval. The adapter does not request or grant approval itself.
 5. Within the accepted, approved window, select **Activate declaration** when ready to fly. This changes the declaration state only.
 6. After landing, select **End declaration after landing**. New samples stop binding to that declaration. If samples are waiting, let the queue drain and select End again. Rejected or expired samples remain visible as gaps.
@@ -128,7 +149,7 @@ The area is a 32-sided polygon that encloses the entered radius with 1 m of geom
 
 | Saved or Blender state | Available action |
 |---|---|
-| Draft | Submit once or discard. An expired draft must be discarded and reviewed again. |
+| Draft | Submit once or choose **Edit plan**. Editing replaces the draft with a new review; an expired draft needs a new start time. |
 | Not submitted to network (0) | Check status or withdraw. |
 | Accepted (1), approved | Activate within its time window, or cancel before activation. |
 | Activated (2), nonconforming (3), contingent (4) | End after landing; investigate any abnormal state under the operating procedure. |

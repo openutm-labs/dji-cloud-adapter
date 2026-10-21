@@ -110,6 +110,41 @@ class Pilot(Model):
     device_ids: list[str] = Field(min_length=1)
 
 
+class PlanningMap(Model):
+    tile_url: str = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+    attribution: str = Field(default="© OpenStreetMap contributors", min_length=1, max_length=200)
+    attribution_url: str = "https://www.openstreetmap.org/copyright"
+    max_zoom: int = Field(default=19, ge=1, le=22)
+
+    @field_validator("tile_url")
+    @classmethod
+    def valid_tiles(cls, value):
+        if not value:
+            return value  # An empty URL keeps the area overlay without external tiles.
+        parsed = urlsplit(value)
+        if (
+            len(value) > 1000
+            or parsed.scheme != "https"
+            or not parsed.hostname
+            or parsed.username
+            or parsed.password
+            or parsed.fragment
+            or any(ord(c) < 32 or c.isspace() or c in "<>\"'\\" for c in value)
+            or any(value.count("{" + axis + "}") != 1 for axis in ("z", "x", "y"))
+        ):
+            raise ValueError("Use an HTTPS tile template with {z}, {x} and {y}")
+        remainder = value.replace("{z}", "0").replace("{x}", "0").replace("{y}", "0")
+        if "{" in remainder or "}" in remainder or "{" in parsed.netloc or "}" in parsed.netloc:
+            raise ValueError("Tile placeholders must be in the path or query")
+        return value
+
+    @field_validator("attribution_url")
+    @classmethod
+    def valid_attribution(cls, value):
+        check_url(value, {"https"}, False)
+        return value
+
+
 class Declarations(Model):
     enabled: bool = False
     operator_id: str = Field(default="", max_length=100)
@@ -203,6 +238,7 @@ class Settings(Model):
     devices: list[Device] = Field(default_factory=list)
     enrollment: Enrollment = Field(default_factory=Enrollment)
     declarations: Declarations = Field(default_factory=Declarations)
+    planning_map: PlanningMap = Field(default_factory=PlanningMap)
     max_sample_age_seconds: int = Field(default=60, ge=5, le=300)
     max_future_seconds: int = Field(default=15, ge=0, le=60)
     session_hours: int = Field(default=12, ge=1, le=24)
