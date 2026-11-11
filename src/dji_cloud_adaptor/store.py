@@ -50,7 +50,32 @@ class Store:
                     name TEXT PRIMARY KEY,
                     value INTEGER NOT NULL DEFAULT 0
                 );
+                CREATE TABLE IF NOT EXISTS operations (
+                    id TEXT PRIMARY KEY,
+                    device_id TEXT NOT NULL,
+                    aircraft_sn TEXT NOT NULL,
+                    pilot_name TEXT NOT NULL,
+                    request_hash TEXT NOT NULL,
+                    plan TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    created_at REAL NOT NULL,
+                    start_at REAL NOT NULL,
+                    end_at REAL NOT NULL,
+                    stage TEXT NOT NULL,
+                    remote_id TEXT,
+                    remote_state INTEGER,
+                    approved INTEGER DEFAULT 0,
+                    checked_at REAL,
+                    bind_from REAL,
+                    error TEXT
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS operations_open_aircraft ON operations(aircraft_sn)
+                    WHERE stage NOT IN ('closed','discarded');
             """)
+            columns = {row[1] for row in db.execute("PRAGMA table_info(samples)")}
+            if "operation_id" not in columns:
+                db.execute("ALTER TABLE samples ADD COLUMN operation_id TEXT")
+            db.execute("CREATE INDEX IF NOT EXISTS samples_operation ON samples(operation_id,state)")
         path.chmod(0o600)
 
     @contextmanager
@@ -83,6 +108,8 @@ class Store:
         received_at: float,
         payload: dict,
         capacity: int,
+        *,
+        associate_operation: bool = False,
     ) -> bool:
         encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
         sample_id = hashlib.sha256(f"{serial}|{encoded}".encode()).hexdigest()
@@ -93,10 +120,28 @@ class Store:
             count = db.execute("SELECT COUNT(*) FROM samples WHERE state='pending'").fetchone()[0]
             if count >= capacity:
                 raise QueueFull("Durable outbox is full")
+            operation = None
+            if associate_operation:
+                operation = db.execute(
+                    "SELECT id FROM operations WHERE device_id=? AND aircraft_sn=? "
+                    "AND stage='submitted' AND remote_state IN (2,3,4) AND approved=1 "
+                    "AND bind_from<=? AND start_at<=? AND end_at>? AND checked_at>=?",
+                    (device_id, serial, observed_at, observed_at, observed_at, received_at - 30),
+                ).fetchone()
             db.execute(
-                "INSERT INTO samples(id,device_id,aircraft_sn,session_id,observed_at,received_at,payload) "
-                "VALUES (?,?,?,?,?,?,?)",
-                (sample_id, device_id, serial, session_id, observed_at, received_at, encoded),
+                "INSERT INTO samples(id,device_id,aircraft_sn,session_id,observed_at,received_at,"
+                "payload,operation_id) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (
+                    sample_id,
+                    device_id,
+                    serial,
+                    session_id,
+                    observed_at,
+                    received_at,
+                    encoded,
+                    operation[0] if operation else None,
+                ),
             )
         return True
 

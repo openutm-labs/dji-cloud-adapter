@@ -41,7 +41,7 @@ Registration supports these pairs, subject to acceptance of the exact firmware a
 
 This implements the Pilot 2 Cloud API MQTT/JSBridge interface. DJI's separate Cloud API 2 runtime is not included. See [compatibility and sources](docs/protocol.md#version-and-evidence-limits).
 
-The connection sends telemetry only. It does not control the aircraft, upload photographs, create declarations or grant flight permission. **API accepted** needs a separate downstream reception check. Internet loss can leave gaps; expired samples are not replayed as live traffic. Details are in the [Blender contract](docs/blender.md).
+The default connection sends telemetry. Administrators can also enable [pilot flight declarations](docs/blender.md#optional-pilot-declarations). The adapter does not control the aircraft, upload photographs or grant flight permission. **API accepted** needs a separate downstream reception check. Internet loss can leave gaps; expired samples are not replayed as live traffic. Details are in the [Blender contract](docs/blender.md).
 
 ## Developer checks
 
@@ -52,7 +52,7 @@ uv sync --frozen
 uv run ruff check src tests
 uv run ruff format --check src tests
 uv run pytest -q
-node --test tests/portal.test.cjs
+node --test tests/*.test.cjs
 docker build -t dji-cloud-adaptor-app .
 RUN_MQTT_INTEGRATION=1 RUN_STACK_INTEGRATION=1 uv run pytest -q
 ```

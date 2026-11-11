@@ -13,7 +13,7 @@ payload validation remain enabled.
 uv sync --frozen
 docker build -t dji-cloud-adaptor-app .
 RUN_MQTT_INTEGRATION=1 RUN_STACK_INTEGRATION=1 uv run pytest -q
-node --test tests/portal.test.cjs
+node --test tests/*.test.cjs
 ```
 
 The tests create private ephemeral runtimes and only their own Docker resources. They

@@ -104,6 +104,83 @@ class Enrollment(Model):
         return value
 
 
+class Pilot(Model):
+    id: str = Field(pattern=IDENTIFIER.pattern)
+    name: str = Field(min_length=1, max_length=100)
+    device_ids: list[str] = Field(min_length=1)
+
+
+class PlanningMap(Model):
+    tile_url: str = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+    attribution: str = Field(default="© OpenStreetMap contributors", min_length=1, max_length=200)
+    attribution_url: str = "https://www.openstreetmap.org/copyright"
+    max_zoom: int = Field(default=19, ge=1, le=22)
+
+    @field_validator("tile_url")
+    @classmethod
+    def valid_tiles(cls, value):
+        if not value:
+            return value  # An empty URL keeps the area overlay without external tiles.
+        parsed = urlsplit(value)
+        if (
+            len(value) > 1000
+            or parsed.scheme != "https"
+            or not parsed.hostname
+            or parsed.username
+            or parsed.password
+            or parsed.fragment
+            or any(ord(c) < 32 or c.isspace() or c in "<>\"'\\" for c in value)
+            or any(value.count("{" + axis + "}") != 1 for axis in ("z", "x", "y"))
+        ):
+            raise ValueError("Use an HTTPS tile template with {z}, {x} and {y}")
+        remainder = value.replace("{z}", "0").replace("{x}", "0").replace("{y}", "0")
+        if "{" in remainder or "}" in remainder or "{" in parsed.netloc or "}" in parsed.netloc:
+            raise ValueError("Tile placeholders must be in the path or query")
+        return value
+
+    @field_validator("attribution_url")
+    @classmethod
+    def valid_attribution(cls, value):
+        check_url(value, {"https"}, False)
+        return value
+
+
+class Declarations(Model):
+    enabled: bool = False
+    operator_id: str = Field(default="", max_length=100)
+    originating_party: str = Field(default="", max_length=100)
+    pilots: list[Pilot] = Field(default_factory=list)
+    max_radius_m: float | None = Field(default=None, ge=10, le=10000, allow_inf_nan=False)
+    max_height_m: float | None = Field(default=None, gt=0, le=1000, allow_inf_nan=False)
+    max_duration_minutes: int | None = Field(default=None, ge=1, le=1440)
+    altitude_margin_m: float | None = Field(default=None, ge=0, le=100, allow_inf_nan=False)
+    timestamp_accuracy_s: float | None = Field(default=None, gt=0, le=60, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def configured(self):
+        if self.enabled and (
+            not self.operator_id.strip()
+            or not self.originating_party.strip()
+            or not self.pilots
+            or any(
+                value is None
+                for value in (
+                    self.max_radius_m,
+                    self.max_height_m,
+                    self.max_duration_minutes,
+                    self.altitude_margin_m,
+                    self.timestamp_accuracy_s,
+                )
+            )
+        ):
+            raise ValueError(
+                "Declarations need an operator, scoped pilot roster and explicit planning limits"
+            )
+        if len({p.id for p in self.pilots}) != len(self.pilots):
+            raise ValueError("Pilot IDs must be unique")
+        return self
+
+
 class OAuth(Model):
     token_url: str
     client_id: str = Field(min_length=1)
@@ -160,6 +237,8 @@ class Settings(Model):
     blender: Blender
     devices: list[Device] = Field(default_factory=list)
     enrollment: Enrollment = Field(default_factory=Enrollment)
+    declarations: Declarations = Field(default_factory=Declarations)
+    planning_map: PlanningMap = Field(default_factory=PlanningMap)
     max_sample_age_seconds: int = Field(default=60, ge=5, le=300)
     max_future_seconds: int = Field(default=15, ge=0, le=60)
     session_hours: int = Field(default=12, ge=1, le=24)

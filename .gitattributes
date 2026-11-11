@@ -1,0 +1,2 @@
+# Preserve upstream formatting and keep bundled library diffs out of application reviews.
+src/dji_cloud_adaptor/web/vendor/leaflet/** linguist-vendored whitespace=-blank-at-eol,-blank-at-eof,cr-at-eol

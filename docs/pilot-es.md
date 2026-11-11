@@ -54,14 +54,26 @@ Si pierde el código, contacte con el administrador para recuperarlo. No registr
 | **Telemetría de la aeronave** | **Conectado**: el adaptador recibió una posición reciente. |
 | **Flight Blender** | **API: aceptado**: la API aceptó una muestra reciente. |
 
-1. Revise **Última muestra de la aeronave**, **Última aceptación de la API** y **Pendientes de envío** para detectar datos antiguos o retrasos.
+1. Abra **Detalles de conexión** y revise **Última muestra de la aeronave**, **Última aceptación de la API** y **Pendientes de envío** para detectar datos antiguos o retrasos.
 2. Pida al coordinador que examine los datos recibidos en Blender o en el panel disponible.
 
 **Sin configurar**, **Sin datos recientes**, **En espera** y **Estado no disponible** necesitan corrección. **API: aceptado** no demuestra que se haya conservado toda la trayectoria. La comprobación termina cuando el coordinador encuentra datos recientes de la aeronave correcta. No arranque motores ni despegue para comprobar la conexión; use el procedimiento normal en tierra y de recepción GPS.
 
+## Declarar un vuelo cuando esté habilitado
+
+Si aparece **Declaración de vuelo**, el administrador habilitó la planificación del área. Mantenga la aeronave en tierra en el punto de despegue.
+
+1. Compruebe el piloto y la aeronave seleccionados. Ajuste el círculo en el mapa, con los botones de radio o introduciendo un valor. Defina altura, inicio y duración; los botones de duración reducen la escritura.
+2. Confirme que el plan cubre el vuelo y que completó las comprobaciones operativas. Pulse **Revisar plan** y compruebe el límite guardado y el horario. Abra **Detalles de declaración** para ver coordenadas y límites de altitud WGS84.
+3. Pulse **Enviar declaración** una vez. Si el envío no está confirmado, use **Consultar estado** o contacte al administrador. No cree otro plan para recuperar una respuesta perdida.
+4. Espere **Aceptada** y la aprobación registrada. Dentro del horario, pulse **Activar declaración** cuando esté listo para volar.
+5. Tras aterrizar, pulse **Finalizar declaración tras aterrizar**. Si quedan muestras en espera, deje que se envíen y pulse Finalizar otra vez. Registre las muestras rechazadas o vencidas con el coordinador.
+
+Use **Editar plan** para modificar un borrador y revisarlo otra vez. El mapa muestra calles, no restricciones del espacio aéreo. Se declara un círculo VLOS alrededor del despegue. No se importa la misión de Pilot 2 ni se mide la distancia al terreno. Su nombre registra responsabilidad, no es un inicio de sesión personal. La aprobación en Blender no sustituye los permisos requeridos. Siga el procedimiento de la organización si este planificador no cubre su vuelo.
+
 ## Usar y cerrar la conexión
 
-Mantenga Pilot 2 como aplicación de vuelo. No active autoridad de control de vuelo en nube. Esta conexión no crea declaraciones, concede permisos ni sube fotografías.
+Mantenga Pilot 2 como aplicación de vuelo. No active autoridad de control de vuelo en nube. Use el panel de declaración solo si está habilitado. La conexión no concede permisos ni sube fotografías.
 
 La pérdida de internet puede dejar huecos irrecuperables. Siga el procedimiento del laboratorio para pérdida de conexión. No cambie de aplicación de control durante el vuelo.
 

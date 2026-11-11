@@ -106,3 +106,5 @@ docker compose --env-file runtime/compose.env \
 ```
 
 Only loopback ports 18080, 18884 and 19001 are exposed. A browser preview cannot connect an aircraft. Use [operations](operations.md) for backups and upgrades, [admin tasks](self-onboarding.md) for access changes, and the [protocol reference](protocol.md#validation-and-delivery) for queue and delivery behavior.
+
+Optional pilot declarations are disabled by default. To enable them, configure the scoped roster and planning limits in the [Blender guide](blender.md#optional-pilot-declarations), then complete [declaration acceptance](acceptance.md#optional-declaration-workflow).
