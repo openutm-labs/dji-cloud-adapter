@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import re
 import secrets
 import sqlite3
 import time
@@ -25,6 +26,33 @@ def encode(value):
     return value.get_secret_value() if isinstance(value, SecretStr) else str(value)
 
 
+# Setup codes are typed on a controller's on-screen keyboard, so they are short and avoid
+# look-alike characters (0/O, 1/I/L). 31**8 (about 40 bits) with a per-address rate limit,
+# single use and an expiry is sufficient for an online guess; codes are stored hashed.
+SETUP_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+SETUP_LENGTH = 8
+LONG_PREFIX = "invite."
+
+
+def new_setup_code():
+    raw = "".join(secrets.choice(SETUP_ALPHABET) for _ in range(SETUP_LENGTH))
+    return raw[:4] + "-" + raw[4:]
+
+
+def normalize_invitation(value: str) -> str:
+    """Accept a setup code typed in any case, with or without spaces and dashes.
+
+    Long invitations from earlier releases are case-sensitive and stay unchanged."""
+    value = value.strip()
+    if value.startswith(LONG_PREFIX):
+        return value
+    return re.sub(r"[\s-]", "", value).upper()
+
+
+def invitation_digest(value: str) -> str:
+    return digest(normalize_invitation(value))
+
+
 class EnrollmentStore:
     def __init__(self, store: Store):
         self.store = store
@@ -45,20 +73,27 @@ class EnrollmentStore:
                 );
             """)
 
-    def invite(self, label, hours, *, now=None):
+    def invite(self, label, hours, *, now=None, short=True):
         now = time.time() if now is None else now
-        code = "invite." + secrets.token_urlsafe(32)
         expires = now + hours * 3600
-        with self.store.connection() as db:
-            db.execute(
-                "INSERT INTO enrollment_invites(code_hash,label,expires_at) VALUES(?,?,?)",
-                (digest(code), label, expires),
-            )
-        return code, expires
+        for _ in range(5):
+            code = new_setup_code() if short else LONG_PREFIX + secrets.token_urlsafe(32)
+            try:
+                with self.store.connection() as db:
+                    db.execute(
+                        "INSERT INTO enrollment_invites(code_hash,label,expires_at) VALUES(?,?,?)",
+                        (invitation_digest(code), label, expires),
+                    )
+                return code, expires
+            except sqlite3.IntegrityError:
+                continue
+        raise EnrollmentError("invitation_unavailable")
 
     def revoke_invitation(self, code):
         with self.store.connection() as db:
-            db.execute("UPDATE enrollment_invites SET revoked=1 WHERE code_hash=?", (digest(code),))
+            db.execute(
+                "UPDATE enrollment_invites SET revoked=1 WHERE code_hash=?", (invitation_digest(code),)
+            )
 
     def start(self, code, *, now=None):
         now = time.time() if now is None else now
@@ -66,7 +101,7 @@ class EnrollmentStore:
         with self.store.connection() as db:
             db.execute("BEGIN IMMEDIATE")
             invite = db.execute(
-                "SELECT * FROM enrollment_invites WHERE code_hash=?", (digest(code),)
+                "SELECT * FROM enrollment_invites WHERE code_hash=?", (invitation_digest(code),)
             ).fetchone()
             if not invite or invite["revoked"] or invite["expires_at"] <= now:
                 raise EnrollmentError("invalid_invitation")
@@ -79,7 +114,8 @@ class EnrollmentStore:
             expires = min(invite["expires_at"], now + 1200)
             db.execute("DELETE FROM enrollment_sessions WHERE expires_at<=?", (now,))
             db.execute(
-                "INSERT INTO enrollment_sessions VALUES(?,?,?)", (digest(token), digest(code), expires)
+                "INSERT INTO enrollment_sessions VALUES(?,?,?)",
+                (digest(token), invitation_digest(code), expires),
             )
         return token, expires
 

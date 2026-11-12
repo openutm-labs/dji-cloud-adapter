@@ -242,6 +242,9 @@ class Settings(Model):
     max_sample_age_seconds: int = Field(default=60, ge=5, le=300)
     max_future_seconds: int = Field(default=15, ge=0, le=60)
     session_hours: int = Field(default=12, ge=1, le=24)
+    # A controller that connected successfully stays connected for this many days after it was
+    # last opened, so pilots don't retype a code each flying day. 0 restores session_hours.
+    remember_controller_days: int = Field(default=30, ge=0, le=365)
     max_pending_samples: int = Field(default=100000, ge=100, le=1000000)
     retention_days: int = Field(default=7, ge=1, le=90)
 
@@ -283,6 +286,11 @@ class Settings(Model):
         }:
             raise ValueError("Broker provisioner identity must be separate")
         return self
+
+    def session_expiry(self, now: float) -> float:
+        if self.remember_controller_days:
+            return now + self.remember_controller_days * 86400
+        return now + self.session_hours * 3600
 
     def device(self, device_id: str) -> Device | None:
         return next((d for d in self.devices if d.id == device_id), None)

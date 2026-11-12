@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import secrets
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -179,6 +180,12 @@ def main():
     invitation.add_argument("--output", type=Path, required=True)
     invitation.add_argument("--label", default="Operator invitation")
     invitation.add_argument("--hours", type=int, choices=range(1, 169), default=72, metavar="1..168")
+    invitation.add_argument(
+        "--show", action="store_true", help="Also print the setup code here, to read it out or pass it on"
+    )
+    invitation.add_argument(
+        "--long", action="store_true", help="Issue an earlier-style long invitation instead of a setup code"
+    )
     revoke = sub.add_parser("revoke-device", help="Revoke a self-enrolled device and its broker access")
     revoke.add_argument("--config", type=Path, default=Path("runtime/config.json"))
     revoke.add_argument("--database", type=Path, default=Path("runtime/data/queue.sqlite3"))
@@ -212,7 +219,9 @@ def main():
             settings = load_settings(args.config)
             if not settings.enrollment.enabled or args.output.exists():
                 raise ValueError("Enrollment disabled or output already exists")
-            code, expires = EnrollmentStore(Store(args.database)).invite(args.label[:100], args.hours)
+            code, expires = EnrollmentStore(Store(args.database)).invite(
+                args.label[:100], args.hours, short=not args.long
+            )
             private_write(
                 args.output,
                 json.dumps(
@@ -221,6 +230,9 @@ def main():
                 + "\n",
             )
             print("Invitation saved privately. One controller per invitation; no serials needed in advance.")
+            if args.show:
+                until = datetime.fromtimestamp(expires, UTC).strftime("%Y-%m-%d %H:%M UTC")
+                print(f"Address: {settings.public_url}\nSetup code: {code} (single use, until {until})")
         elif args.command == "revoke-device":
             settings = load_settings(args.config)
             registry = EnrollmentStore(Store(args.database))
