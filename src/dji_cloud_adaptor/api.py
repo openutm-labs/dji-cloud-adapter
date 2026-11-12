@@ -37,7 +37,7 @@ class Activate(BaseModel):
 
 
 class EnrollmentLogin(BaseModel):
-    invitation_code: str = Field(min_length=30, max_length=150)
+    invitation_code: str = Field(min_length=8, max_length=150)
 
 
 class EnrollmentDevice(BaseModel):
@@ -186,6 +186,7 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
             "workspace_name": settings.workspace_name,
             "device_name": device.name,
             "expires_at": row["expires_at"],
+            "remember": bool(settings.remember_controller_days),
             "declarations_enabled": settings.declarations.enabled,
             "mqtt": {
                 "host": settings.mqtt.public_url,
@@ -294,7 +295,7 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
                 await provision(device)
                 # Return the same code/session after a lost response, without taking over another device.
                 token = secrets.token_urlsafe(32)
-                expires = time.time() + settings.session_hours * 3600
+                expires = settings.session_expiry(time.time())
                 store.create_session(token, device.id, device.connection_code_sha256, expires)
                 row = store.session(token, time.time())
                 store.activate(row["token_hash"])
@@ -354,7 +355,7 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
         if not settings.dji.configured:
             raise HTTPException(503, "dji_configuration_pending")
         token = secrets.token_urlsafe(32)
-        expires = now + settings.session_hours * 3600
+        expires = settings.session_expiry(now)
         store.create_session(token, device.id, device.connection_code_sha256, expires)
         return {"token": token, "expires_at": expires}
 
@@ -374,6 +375,9 @@ def create_app(settings: Settings, store: Store, *, background=True, transport=N
             store.delete_session(bearer(request))
             raise HTTPException(403, "wrong_controller")
         store.activate(row["token_hash"])
+        if settings.remember_controller_days:
+            # Each verified reopen on the assigned controller keeps it remembered.
+            row["expires_at"] = store.extend_session(row["token_hash"], settings.session_expiry(time.time()))
         return device_config(row, device)
 
     @app.get("/api/pilot/config")

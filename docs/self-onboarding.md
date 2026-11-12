@@ -8,8 +8,10 @@ For the service administrator. **There is no admin web form for invitations.** R
 
 | Code | Purpose | Lifetime |
 |---|---|---|
-| Invitation code | Registers one controller with one aircraft. | Administrator selects 1–168 hours; default 72 hours. |
-| Connection code | Reconnects that registered equipment. | Retained until access is revoked or credentials change. |
+| Setup code (invitation) | Registers one controller with one aircraft. 8 characters, such as `K7PQ-4XM9`, without look-alike characters; case, spaces and the dash are ignored. | Single use. Administrator selects 1–168 hours; default 72 hours. |
+| Connection code | Long recovery code for that registered equipment. The pilot normally never sees it. | Retained until access is revoked or credentials change. |
+
+After a successful connection the controller is **remembered**: reopening the page on the same controller reconnects without any code. Each verified reopen extends the remembered session to `remember_controller_days` (default 30, maximum 365) from that moment. Set it to `0` to return to `session_hours` sessions, in which case pilots keep and retype the connection code.
 
 Neither code is a personal account or proof of pilot identity. Serial numbers are read from Pilot 2 during registration. The administrator does not need the equipment or serial numbers in advance.
 
@@ -39,13 +41,13 @@ docker compose --env-file runtime/compose.env \
   -f compose.yml -f compose.production.yml \
   exec -T app dji-cloud-adaptor issue-invitation \
   --config /config/config.json --database /data/queue.sqlite3 \
-  --label "Equipment setup 01" --hours 72 \
+  --label "Equipment setup 01" --hours 72 --show \
   --output /data/invitations/equipment-01.json
 ```
 
-The command saves a private JSON file with `url`, `invitation_code` and `expires_at`. It does not print the code. The file uses mode 0600. Use a fresh output filename for each invitation.
+The command saves a private JSON file with `url`, `invitation_code` and `expires_at` (mode 0600). With `--show` it also prints the address and the setup code, so you can read the code out or pass it on without copying the file. Leave out `--show` to keep the code off the screen and terminal logs. Use a fresh output filename for each invitation. `--long` issues an earlier-style 50-character invitation instead; both kinds keep working.
 
-An authorized administrator can retrieve it privately with:
+Without `--show`, an authorized administrator can retrieve the file privately with:
 
 ```sh
 umask 077
@@ -55,22 +57,25 @@ docker compose --env-file runtime/compose.env \
 chmod 600 equipment-01.local.json
 ```
 
-Open that private file. Send the **URL and invitation code** through the lab's private channel, with the expiry time. Do not put the code in a URL, screenshot or shared document. Issue a separate invitation for each pair, when the participant is ready.
+Give the participant the **address and setup code** privately (in person, by phone or through the lab's private channel), with the expiry time. Do not put the code in a URL, screenshot or shared document. Issue a separate setup code for each pair, when the participant is ready.
 
 ## What the pilot does
 
 1. Keeps the accepted aircraft on the ground and connected to its controller.
-2. Opens the supplied URL in **Pilot 2 → Cloud Service → Open Platforms**.
-3. Selects **First time here? Register this controller** and enters the invitation.
-4. Selects the aircraft model and **Register and connect →**.
-5. Keeps the generated connection code privately for later connections.
-6. Completes the reception check with the coordinator.
+2. Opens the supplied address in **Pilot 2 → Cloud Service → Open Platforms**.
+3. Types the setup code. If more than one model is allowed, taps the aircraft model.
+4. Taps **Connect →**.
+5. Completes the reception check with the coordinator.
+
+Afterwards the controller reconnects by itself whenever the page is opened; there is no code for the pilot to keep.
 
 No APK, personal OpenUTM signup or GitHub access is necessary. Give the complete [English](pilot-en.md) or [Spanish](pilot-es.md) procedure. Registration alone does not establish flight permission or data reception.
 
 ## Recover or remove access
 
 Use the same deployment env/project as above. Replace `DEVICE_ID` with the enrolled ID from protected `/api/admin/status`. That endpoint needs the server's admin bearer token; keep it out of URLs and command arguments.
+
+A remembered controller normally needs no recovery. It needs a code again only after **Disconnect and forget this controller**, a Pilot 2 reinstall or data reset, more than `remember_controller_days` without use, or revocation.
 
 **Recover a lost connection code:**
 
@@ -93,7 +98,7 @@ docker compose --env-file runtime/compose.env \
   --device DEVICE_ID --config /config/config.json --database /data/queue.sqlite3
 ```
 
-Revocation blocks application sessions immediately. The running service refreshes its fleet within five seconds and retries broker reconciliation after outages. Closing the pilot page alone does not remove broker access.
+Revocation blocks application sessions immediately, including remembered controllers. The running service refreshes its fleet within five seconds and retries broker reconciliation after outages. Closing the pilot page alone does not remove broker access.
 
 **Cancel an unused invitation:**
 
@@ -111,11 +116,11 @@ Canceling an invitation does not revoke a registered device. Use `revoke-device`
 
 | Condition | Action |
 |---|---|
-| Invitation expired before registration | Issue a replacement invitation. |
+| Setup code expired before registration | Issue a replacement setup code. |
 | Equipment already registered | Recover its connection code. An invitation cannot overwrite the pair. |
 | Missing aircraft ID | Check power and controller connection on the ground. There is no manual-ID bypass. |
 | License failure | Check DJI application credentials and actual-controller compatibility. |
-| **Registration is saved** | Keep the pilot page open and retry **Register and connect**. Keep the same equipment and identity. |
+| **Registration is saved** | Keep the pilot page open and tap **Connect** again. Keep the same equipment and identity. |
 | Replacement aircraft or controller | Arrange administrator-assisted reassignment. Do not invent another identity. |
 
 For pre-provisioned devices in `config.json`, access changes require configuration/broker regeneration and app/broker restart; the enrolled-device commands above manage invitation registrations. Preserve pending data and back up the registry and broker together. See [operations](operations.md) and [protocol details](protocol.md#onboarding-handshake).

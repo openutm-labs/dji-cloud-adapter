@@ -23,7 +23,7 @@ Use the organization's approved ground procedure. Do not start motors or take of
 3. Register the correct controller–aircraft pair and verify the MQTT WebSocket connection.
 4. Examine a current aircraft position, equipment identity, height reference, units and source timestamp.
 5. Verify Blender API acceptance and independently examine downstream reception and display.
-6. Reopen the page and reconnect with the same equipment's saved connection code.
+6. Reopen the page and check that the same controller reconnects without a code. Restart Pilot 2 and repeat. Use **Disconnect and forget**, then reconnect with the recovered connection code.
 7. Check approved ground connectivity interruptions, stale indicators and reconnection.
 8. Verify app/broker restarts and controller revocation. Old data must not return as current traffic.
 9. Make sure that Pilot 2 retains aircraft control and the adapter never requests cloud flight-control authority.

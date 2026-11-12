@@ -30,7 +30,7 @@ All three can run on one Linux VM. The production configuration exposes web acce
 | Maintainer | [Release, monitor, back up and restore](docs/operations.md). |
 | Developer | [DJI protocol](docs/protocol.md), [Blender contract](docs/blender.md) and [simulation procedure](docs/simulation.md). |
 
-An **invitation code** registers one controller–aircraft pair. Registration supplies a **connection code** for later connections. Neither identifies the human pilot. The administrator does not need serial numbers in advance.
+A short **setup code** (invitation) registers one controller–aircraft pair. After that the controller is remembered and reconnects by itself; a long **connection code** remains for recovery. Neither identifies the human pilot. The administrator does not need serial numbers in advance.
 
 ## Equipment and limits
 

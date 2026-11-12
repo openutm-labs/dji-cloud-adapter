@@ -6,9 +6,9 @@ The relevant path is a **third-party cloud connection from Pilot 2**. This is no
 
 ## Onboarding handshake
 
-1. The administrator issues a private one-use invitation without collecting serials. The operator chooses a supported aircraft model, and Pilot 2 supplies the controller/aircraft IDs; the server registers the pairing and returns its private connection code. Alternatively, the administrator pre-provisions a pair and issues its code. See [self-onboarding](self-onboarding.md).
+1. The administrator issues a private one-use setup code (invitation) without collecting serials. The operator chooses a supported aircraft model when more than one is allowed, and Pilot 2 supplies the controller/aircraft IDs; the server registers the pairing and returns its private connection code. Alternatively, the administrator pre-provisions a pair and issues its code. See [self-onboarding](self-onboarding.md).
 2. The pilot opens our HTTPS address inside **Cloud Service → Open Platforms** in Pilot 2.
-3. The page exchanges its connection code for a limited adapter session. Only authenticated sessions can retrieve our DJI application licence parameters.
+3. The page exchanges its connection code (or, on a reopen, its remembered session) for an adapter session. Only authenticated sessions can retrieve our DJI application licence parameters.
 4. The page calls `platformVerifyLicense(appId, appKey, license)` and checks the result.
 5. It reads `platformGetRemoteControllerSN()` and asks the server to activate the session for that assigned controller. A mismatch revokes the session. Serial-number matching is a consistency check, not hardware attestation; the private code is the authentication secret.
 6. It sets the workspace UUID and display information using `platformSetWorkspaceId` and `platformSetInformation`.
@@ -17,7 +17,7 @@ The relevant path is a **third-party cloud connection from Pilot 2**. This is no
 
 The human pilot's identity is not inferred from the controller's connection code. Human identity, authorisation and flight planning remain in the organisation’s separate workflow.
 
-The adapter's session token is stored hashed server-side. Pilot 2 may store it in its API module; we do not store it or the setup code in browser localStorage. The language preference alone uses localStorage, and the page still works when that storage is disabled. Sessions expire after 12 hours by default. Per-controller MQTT passwords remain valid until revoked/rotated; session expiry alone is not broker credential revocation.
+The adapter's session token is stored hashed server-side. Pilot 2 stores it in its API module (`apiGetToken`), and when `remember_controller_days` is above 0 the page also keeps a copy in its own storage on the controller, for reopens after Pilot 2 has unloaded that module. A reopen re-verifies the DJI licence if needed, re-checks the controller serial and then extends the session. The page clears its copy on **Disconnect and forget** or when the server rejects the session; a network outage keeps it. The setup and connection codes are never stored in the browser. The language preference alone uses localStorage, and the page still works when that storage is disabled. Sessions expire after 12 hours by default. Per-controller MQTT passwords remain valid until revoked/rotated; session expiry alone is not broker credential revocation.
 
 ## Topics
 

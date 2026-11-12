@@ -18,6 +18,12 @@ function portal({
   aircraft = "NEW-AIRCRAFT-001",
   rawSerials = false,
   enrollmentFailures = 0,
+  remember = undefined,
+  models = ["Mavic 3 Enterprise", "Matrice 400"],
+  apiToken = undefined,
+  stored = {},
+  verified = false,
+  statusBody = undefined,
 } = {}) {
   const nodes = new Map(),
     calls = [],
@@ -53,20 +59,33 @@ function portal({
       username: "pilot",
       password: "test-only",
     },
+    ...(remember === undefined ? {} : { remember }),
   };
+  const storage = new Map(Object.entries(stored));
   const context = {
     document: {
       documentElement: { lang: "en", classList: {toggle() {}} },
       getElementById: node,
-      createElement: () => ({value: "", textContent: ""}),
+      createElement: () => ({
+        value: "", textContent: "", listeners: {},
+        setAttribute(name, value) { (this.attributes ||= {})[name] = value; },
+        addEventListener(name, fn) { this.listeners[name] = fn; },
+      }),
       querySelectorAll: () => [],
     },
     localStorage: {
-      getItem() {
+      getItem(key) {
         if (storageFailure) throw new Error();
-        return null;
+        return storage.has(key) ? storage.get(key) : null;
       },
-      setItem() {},
+      setItem(key, value) {
+        if (storageFailure) throw new Error();
+        storage.set(key, value);
+      },
+      removeItem(key) {
+        if (storageFailure) throw new Error();
+        storage.delete(key);
+      },
     },
     setInterval: () => 1,
     clearInterval: () => {},
@@ -75,7 +94,7 @@ function portal({
     fetch: async (url, options) => {
       calls.push({ url, options });
       const responses = {
-        "/api/enrollment/options": {enabled: enrollment, models: ["Mavic 3 Enterprise", "Matrice 400"]},
+        "/api/enrollment/options": {enabled: enrollment, models},
         "/api/enrollment/start": {token: "enrollment-session"},
         "/api/enrollment/bootstrap": {app_id: "test-app", app_key: "test-key", license: "test-license"},
         "/api/enrollment/complete": {token: "new-device-session", connection_code: "private-new-device-code", config},
@@ -86,7 +105,7 @@ function portal({
           license: "test-license",
         },
         "/api/pilot/activate": config,
-        "/api/pilot/status": {
+        "/api/pilot/status": statusBody || {
           counts: { accepted: 1 },
           device_name: "Test controller",
           workspace_name: "Test workspace",
@@ -97,6 +116,7 @@ function portal({
         },
         "/api/pilot/logout": { status: "signed_out" },
       };
+      if (url === "/api/pilot/activate" && activation === "offline") throw new Error("offline");
       const status = url === "/api/pilot/activate" ? activation :
         url === "/api/enrollment/complete" && enrollmentFailures-- > 0 ? 503 : 200;
       return {
@@ -114,7 +134,7 @@ function portal({
         return wrap(license);
       },
       platformIsVerified() {
-        return wrap(false);
+        return wrap(verified);
       },
       platformGetRemoteControllerSN() {
         return rawSerials ? "EXAMPLE-RC-001" : wrap("EXAMPLE-RC-001");
@@ -144,6 +164,7 @@ function portal({
       apiSetToken() {
         return wrap("");
       },
+      ...(apiToken === undefined ? {} : { apiGetToken: () => wrap(apiToken) }),
     };
   vm.createContext(context);
   vm.runInContext(fs.readFileSync(path.join(__dirname, "../src/dji_cloud_adaptor/web/planning-map.js"), "utf8"), context);
@@ -154,6 +175,10 @@ function portal({
     calls,
     nativeCalls,
     context,
+    storage,
+    async settle() {
+      for (let i = 0; i < 5; i++) await new Promise(setImmediate);
+    },
     async register() {
       await new Promise(setImmediate);
       node("invitation").value = "private-invitation";
@@ -299,4 +324,139 @@ test("connection failure after registration preserves the recovery code", async 
   assert.equal(p.node("connect-card").hidden, false);
   assert.equal(p.node("code").value, "private-new-device-code");
   assert.equal(p.node("save-code-card").hidden, false);
+});
+
+const SESSION_KEY = "openutm.controllerSession";
+
+test("a remembered controller reconnects without any code, even after Pilot 2 restarts", async () => {
+  const p = portal({ apiToken: "remembered-session", remember: true });
+  await p.settle();
+  const urls = p.calls.map((c) => c.url);
+  assert(!urls.includes("/api/pilot/login"));
+  assert(urls.includes("/api/pilot/bootstrap"), "licence is verified again when Pilot 2 lost it");
+  assert.equal(p.nativeCalls[0][0], "license");
+  const activate = p.calls.find((c) => c.url === "/api/pilot/activate");
+  assert.equal(activate.options.headers.Authorization, "Bearer remembered-session");
+  assert.equal(p.node("connection-card").hidden, false);
+  assert.equal(p.node("remembered-note").hidden, false);
+  assert.equal(p.storage.get(SESSION_KEY), "remembered-session");
+});
+test("the page's own copy reconnects when Pilot 2's API token is gone", async () => {
+  const p = portal({ stored: { [SESSION_KEY]: "stored-session" }, remember: true, verified: true });
+  await p.settle();
+  const activate = p.calls.find((c) => c.url === "/api/pilot/activate");
+  assert.equal(activate.options.headers.Authorization, "Bearer stored-session");
+  assert(!p.calls.some((c) => c.url === "/api/pilot/bootstrap"), "no licence call when still verified");
+  assert.equal(p.node("connection-card").hidden, false);
+});
+test("an outage keeps the remembered controller and offers a retry", async () => {
+  const p = portal({ apiToken: "remembered-session", activation: "offline", verified: true });
+  await p.settle();
+  assert.equal(p.node("reconnect-card").hidden, false);
+  assert.equal(p.node("retry").hidden, false);
+  assert.match(p.node("reconnect-message").textContent, /internet/);
+  assert(!p.calls.some((c) => c.url === "/api/pilot/logout"));
+  assert(!p.nativeCalls.some((c) => c[0] === "load"));
+});
+test("a rejected remembered session is forgotten and setup is shown", async () => {
+  const p = portal({
+    stored: { [SESSION_KEY]: "revoked-session" }, activation: 401, verified: true, enrollment: true,
+  });
+  await p.settle();
+  assert.equal(p.storage.has(SESSION_KEY), false);
+  assert.equal(p.node("enrollment-card").hidden, false);
+  assert.equal(p.node("connect-card").hidden, true);
+  assert.match(p.node("enrollment-message").textContent, /setup code/);
+});
+test("with self-registration on, a new controller opens on the setup-code screen", async () => {
+  const p = portal({ enrollment: true });
+  await p.settle();
+  assert.equal(p.node("enrollment-card").hidden, false);
+  assert.equal(p.node("connect-card").hidden, true);
+  assert.equal(p.node("open-enrollment").hidden, false);
+});
+test("without self-registration, a new controller opens on the connection-code screen", async () => {
+  const p = portal();
+  await p.settle();
+  assert.equal(p.node("connect-card").hidden, false);
+  assert.equal(p.node("enrollment-card").hidden, true);
+});
+test("one accepted model is chosen for the pilot", async () => {
+  const p = portal({ enrollment: true, models: ["Matrice 400"] });
+  await p.settle();
+  assert.equal(p.node("model-field").hidden, true);
+  assert.equal(p.node("aircraft-model").value, "Matrice 400");
+  assert.equal((p.node("model-choices").children || []).length, 0);
+});
+test("several models are one tap each, and registration waits for a choice", async () => {
+  const p = portal({ enrollment: true });
+  await p.settle();
+  const buttons = p.node("model-choices").children;
+  assert.deepEqual(buttons.map((b) => b.textContent), ["Mavic 3 Enterprise", "Matrice 400"]);
+  p.node("invitation").value = "ABCD-2345";
+  await p.node("enrollment-form").listeners.submit({ preventDefault() {} });
+  assert.match(p.node("enrollment-message").textContent, /Choose the aircraft/);
+  assert(!p.calls.some((c) => c.url === "/api/enrollment/start"));
+  buttons[1].listeners.click();
+  assert.equal(p.node("aircraft-model").value, "Matrice 400");
+  assert.equal(buttons[1].attributes["aria-pressed"], "true");
+  assert.equal(buttons[0].attributes["aria-pressed"], "false");
+});
+test("a remembered registration has no code to keep", async () => {
+  const p = portal({ enrollment: true, remember: true });
+  await p.register();
+  assert.equal(p.node("save-code-card").hidden, true);
+  assert.equal(p.node("connection-card").hidden, false);
+  assert.equal(p.storage.get(SESSION_KEY), "new-device-session");
+});
+test("disconnecting forgets the controller", async () => {
+  const p = portal({ remember: true });
+  await p.connect();
+  assert.equal(p.storage.get(SESSION_KEY), "session-token");
+  await p.node("disconnect").listeners.click();
+  assert.equal(p.storage.has(SESSION_KEY), false);
+  assert(p.calls.some((c) => c.url === "/api/pilot/logout"));
+});
+test("one plain status says the drone is visible", async () => {
+  const p = portal();
+  await p.connect();
+  await p.settle();
+  assert.equal(p.node("overall-title").textContent, "OpenUTM can see your drone");
+  assert.match(p.node("overall-detail").textContent, /Last position shared at/);
+  assert.equal(p.node("overall").className, "overall good");
+});
+test("plain status asks for the drone when no recent position arrives", async () => {
+  const p = portal({
+    statusBody: { counts: {}, server_time: 100, last_received_at: 20, blender_configured: true },
+  });
+  await p.connect();
+  await p.settle();
+  assert.equal(p.node("overall-title").textContent, "Connected: waiting for your drone");
+  assert.equal(p.node("overall").className, "overall wait");
+});
+test("plain status points to the administrator for a server-side fault", async () => {
+  const p = portal({
+    statusBody: { counts: { pending: 4 }, server_time: 100, last_received_at: 99, blender_configured: true, last_error: "http_503" },
+  });
+  await p.connect();
+  await p.settle();
+  assert.equal(p.node("overall-title").textContent, "Your drone isn't reaching OpenUTM");
+  assert.equal(p.node("overall").className, "overall bad");
+});
+test("plain status reports when the connection cannot be checked", async () => {
+  const p = portal();
+  await p.connect();
+  p.context.fetch = async () => {
+    throw new Error("offline");
+  };
+  await p.context.poll();
+  assert.equal(p.node("overall-title").textContent, "Can't check the connection");
+});
+test("plain status is translated", async () => {
+  const p = portal();
+  await p.connect();
+  await p.settle();
+  p.node("language").value = "es";
+  p.node("language").listeners.change();
+  assert.equal(p.node("overall-title").textContent, "OpenUTM ve su dron");
 });

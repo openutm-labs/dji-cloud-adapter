@@ -200,6 +200,16 @@ class Store:
         with self.connection() as db:
             db.execute("UPDATE sessions SET activated=1 WHERE token_hash=?", (token_hash,))
 
+    def extend_session(self, token_hash: str, expires_at: float) -> float:
+        """Slide a remembered session forward; never shortens it."""
+        with self.connection() as db:
+            db.execute(
+                "UPDATE sessions SET expires_at=MAX(expires_at,?) WHERE token_hash=?",
+                (expires_at, token_hash),
+            )
+            row = db.execute("SELECT expires_at FROM sessions WHERE token_hash=?", (token_hash,)).fetchone()
+            return row[0] if row else expires_at
+
     def delete_session(self, token: str):
         with self.connection() as db:
             db.execute(

@@ -6,58 +6,53 @@ Este procedimiento envía telemetría a OpenUTM y mantiene Pilot 2 como aplicaci
 
 ## Antes de empezar
 
-Obtenga del administrador la dirección HTTPS y una invitación privada o el código existente del controlador. Use aeronave, controlador, firmware y carga útil aceptados. El controlador necesita internet.
+Pida dos cosas al administrador: la **dirección** de la página y un **código de configuración** (8 caracteres, por ejemplo `K7PQ-4XM9`). Use aeronave, controlador, firmware y carga útil aceptados. El controlador necesita internet.
 
-No necesita APK OpenUTM ni autorregistro personal OpenUTM. Los códigos del equipo no identifican al piloto. La identidad, planificación y permisos de vuelo siguen los procedimientos del laboratorio.
+No necesita APK OpenUTM ni registro personal en OpenUTM. Los códigos de configuración no identifican al piloto. La identidad, planificación y permisos de vuelo siguen los procedimientos del laboratorio.
 
-## Abrir la página de conexión
+## Configurar el controlador (una sola vez)
 
-1. Mantenga la aeronave en tierra y conectada al controlador.
-2. Abra **DJI Pilot 2 → Cloud Service → Open Platforms**.
-3. Introduzca la dirección HTTPS suministrada.
-4. Compruebe que la dirección es correcta y no hay aviso de certificado.
-5. Seleccione **Español** o **English**.
+1. Mantenga la aeronave en tierra, encendida y enlazada con su controlador.
+2. Abra **DJI Pilot 2 → Cloud Service → Open Platforms** e introduzca la dirección. Compruebe que no aparece ningún aviso de certificado.
+3. Elija **Español** o **English** arriba si hace falta.
+4. Escriba el **código de configuración**. Las mayúsculas, los espacios y el guion no importan.
+5. Si se le pide, toque su aeronave: **Mavic 3 Enterprise** o **Matrice 400**. (Si su organización acepta un solo modelo, la página no pregunta.)
+6. Toque **Conectar →**.
 
-Si dirección, certificado o menú no coinciden, deténgase y contacte con el administrador. **Abra esta página en DJI Pilot 2** indica que usa un navegador normal. Vuelva a **Open Platforms**.
+Eso es todo. Pilot 2 lee los números de serie, y el controlador queda **recordado**: no hay ningún código que anotar. Cada código de configuración sirve una vez, para un controlador y su aeronave, y vence. El nombre del controlador es opcional.
 
-## Registrar o reconectar
+Si la página dice **Abra esta página en DJI Pilot 2**, está en un navegador normal; vuelva a **Open Platforms**. Si la dirección, el certificado o el menú no coinciden, deténgase y contacte con el administrador.
 
-Complete solo la opción correspondiente y después revise los estados de conexión.
+![Página de configuración con campos vacíos](images/self-onboarding-es.png)
 
-### Primera conexión: usar una invitación
+*Vista previa en navegador. La configuración está desactivada fuera de Pilot 2; no muestra códigos ni identificadores reales.*
 
-1. Seleccione **¿Primera vez? Registre este controlador**.
-2. Introduzca el **Código de invitación** privado.
-3. Seleccione **Mavic 3 Enterprise** o **Matrice 400**, según su aeronave.
-4. Seleccione **Registrar y conectar →**.
-5. Use **Mostrar código** para guardar el **código de conexión** generado en la ubicación privada del laboratorio.
+### Los días siguientes
 
-Pilot 2 lee los números de serie automáticamente. El nombre del controlador es opcional. Cada invitación vence y registra un controlador con una aeronave. Otra combinación necesita otra invitación. No incluya códigos en capturas.
+Abra **Cloud Service → Open Platforms** y la página se reconecta sola (**Reconectando este controlador…**). No hay que escribir nada. El controlador sigue recordado mientras se use al menos una vez cada 30 días (el administrador puede cambiarlo).
 
-![Página de registro con campos vacíos](images/self-onboarding-es.png)
+Si dice **No se pudo contactar con OpenUTM**, compruebe el internet del controlador y toque **Reintentar**. Si vuelve a pedir un código de configuración, el controlador se desconectó o se retiró su acceso: pida un código nuevo al administrador.
 
-*Vista previa en navegador. El registro está desactivado fuera de Pilot 2; no muestra códigos ni identificadores reales.*
+Algunas organizaciones entregan un **código de conexión** largo en lugar de códigos de configuración. Use **Tengo un código de conexión**, introdúzcalo una vez y el controlador queda recordado igual.
 
-### Conexiones posteriores: usar el código guardado
+## Comprobar la conexión
 
-1. Introduzca el **Código de conexión** guardado para este controlador.
-2. Seleccione **Conectar telemetría →**.
-3. Espere la verificación de licencia y la conexión.
+La página muestra una sola línea:
 
-Si pierde el código, contacte con el administrador para recuperarlo. No registre el mismo equipo otra vez.
-
-## Revisar los estados de conexión
-
-| Indicación | Resultado esperado |
+| Ve | Significa |
 |---|---|
-| **Conexión del controlador** | **Conectado**: Pilot 2 indica conexión con el servicio de telemetría. |
-| **Telemetría de la aeronave** | **Conectado**: el adaptador recibió una posición reciente. |
-| **Flight Blender** | **API: aceptado**: la API aceptó una muestra reciente. |
+| ✓ **OpenUTM ve su dron** | Llegan posiciones y se comparten. |
+| **Conectado: esperando su dron** | Encienda la aeronave, manténgala enlazada y espere la señal GPS. |
+| **Conectado: enviando posiciones guardadas** | Se recupera tras un corte; se resuelve solo. |
+| **Conectando con OpenUTM…** | Compruebe el internet del controlador. |
+| ! **La posición de su dron no llega a OpenUTM** | Problema del servidor. Indique al administrador la hora y lo que ve. |
+| ! **No se puede comprobar la conexión** | La página no llega a OpenUTM; puede que las posiciones se sigan enviando. Compruebe internet. |
 
-1. Abra **Detalles de conexión** y revise **Última muestra de la aeronave**, **Última aceptación de la API** y **Pendientes de envío** para detectar datos antiguos o retrasos.
-2. Pida al coordinador que examine los datos recibidos en Blender o en el panel disponible.
+![Estado de la conexión: OpenUTM ve su dron](images/connection-es.png)
 
-**Sin configurar**, **Sin datos recientes**, **En espera** y **Estado no disponible** necesitan corrección. **API: aceptado** no demuestra que se haya conservado toda la trayectoria. La comprobación termina cuando el coordinador encuentra datos recientes de la aeronave correcta. No arranque motores ni despegue para comprobar la conexión; use el procedimiento normal en tierra y de recepción GPS.
+*Vista previa con un controlador simulado y nombres ficticios.*
+
+Pida al coordinador que confirme datos recientes de la aeronave correcta en Blender o en el panel. **Detalles para su coordinador** muestra los estados técnicos (controlador, telemetría de la aeronave, API de Flight Blender), las horas y las posiciones pendientes. Una línea verde no demuestra que se haya conservado toda la trayectoria. No arranque motores ni despegue para esta comprobación; use el procedimiento normal en tierra y de recepción GPS.
 
 ## Declarar un vuelo cuando esté habilitado
 
@@ -77,25 +72,24 @@ Mantenga Pilot 2 como aplicación de vuelo. No active autoridad de control de vu
 
 La pérdida de internet puede dejar huecos irrecuperables. Siga el procedimiento del laboratorio para pérdida de conexión. No cambie de aplicación de control durante el vuelo.
 
-1. Con la aeronave en tierra, complete el cierre del laboratorio.
-2. Revise la hora de la última muestra y los datos pendientes con el coordinador.
-3. Registre datos ausentes o fallos pendientes.
-4. Seleccione **Desconectar este controlador**.
+Tras aterrizar, complete el cierre del laboratorio, revise con el coordinador la hora de la última posición y registre datos ausentes o fallos pendientes. **No hace falta desconectar después de cada vuelo.**
 
-Conserve registros del fabricante y fotografías según el procedimiento del laboratorio. Cerrar la página no revoca el acceso del equipo; comunique la pérdida de un controlador al administrador.
+**Desconectar y olvidar este controlador** (en **Detalles para su coordinador**) detiene el envío y elimina la conexión recordada. Úselo solo cuando el controlador deje su organización o cambie de manos; después necesitará un código de configuración nuevo. Comunique la pérdida de un controlador al administrador, que puede retirar su acceso.
+
+Conserve registros del fabricante y fotografías según el procedimiento del laboratorio.
 
 ## Resolver un fallo
 
 | Indicación | Acción |
 |---|---|
-| Falta el botón de registro o el menú difiere | Obtenga las instrucciones correctas del administrador. |
+| El menú difiere o no aparece la pantalla del código | Obtenga las instrucciones correctas del administrador. |
 | Fallo de licencia | Pida revisar credenciales de la aplicación DJI y compatibilidad del controlador. |
 | Sin identificador de aeronave o telemetría | Revise en tierra alimentación, enlace, combinación registrada y GPS. |
-| Invitación vencida | Obtenga otra si aún no se ha completado el registro. |
-| **El registro está guardado** | Mantenga la página abierta y repita **Registrar y conectar** con el mismo equipo. |
-| Equipo ya registrado, código perdido o controlador incorrecto | Solicite recuperación o el código correcto. No cambie de identidad. |
-| Demasiados intentos | Espere un minuto antes de repetir. |
-| Sesión terminada | Reconecte con el código guardado de este controlador. |
+| **Revise el código de configuración** | Vuelva a escribirlo. Si sigue fallando, venció o ya se usó: pida uno nuevo. |
+| **El registro está guardado** | Mantenga la página abierta y toque **Conectar** de nuevo con el mismo equipo. |
+| **Ya están registrados** o controlador incorrecto | Pida al administrador que lo vuelva a conectar. No lo registre otra vez. |
+| **Demasiados intentos** | Espere un minuto antes de repetir. |
+| Vuelve a pedir un código de configuración | El controlador se desconectó o se retiró su acceso. Pida un código nuevo. |
 | Blender pendiente o sin configurar | Contacte con el administrador. No cambie fechas ni recree operaciones. |
 
-Informe del paso, mensaje exacto, modelos, versión de Pilot, hora y zona horaria por el canal privado del laboratorio. Excluya códigos, contraseñas y credenciales.
+Informe del paso, mensaje exacto, modelos, versión de Pilot, hora y zona horaria por el canal privado del laboratorio. Excluya códigos de configuración y de conexión, contraseñas y credenciales.
